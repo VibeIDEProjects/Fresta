@@ -1,0 +1,20 @@
+# Сильные whitelisted-SNI (harvest из подписки). По одному в строке.
+ads.x5.ru
+api-maps.yandex.ru
+5post-gate.x5.ru
+cdp.x5.ru
+smartcaptcha.yandexcloud.net
+max.ru
+m.vk.com
+iv.kommersant.ru
+rutube.ru
+api.yandex.ru
+eh.vk.com
+www.vk.com
+yandex.ru
+st.ozone.ru
+kinopoisk.ru
+gp.x5.ru
+img.perekrestok.ru
+adaptation.sfera.x5.ru
+passport.yandex.ru

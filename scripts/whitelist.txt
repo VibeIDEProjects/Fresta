@@ -1,0 +1,178 @@
+# Белый список Минцифры — домены для fresta recon
+# Источник: официальный перечень Минцифры (републикация kod.ru, обновл. 23.04.2026).
+# ВАЖНО: перечень публикуется по НАЗВАНИЯМ сервисов, не доменов. Ниже — реконструкция
+# «сервис -> основной домен». Проверь/подчисти под свой регион и оператора:
+# реальный whitelist может отличаться по поддоменам.
+
+# --- Государство и госорганы ---
+gosuslugi.ru
+pos.gosuslugi.ru
+mvd.ru
+mchs.gov.ru
+genproc.gov.ru
+nalog.gov.ru
+council.gov.ru
+duma.gov.ru
+kremlin.ru
+government.ru
+pochta.ru
+rosseti.ru
+crpt.ru
+roskachestvo.gov.ru
+glonass.ru
+sbis.ru
+kontur.ru
+hrlink.ru
+roskazna.gov.ru
+
+# --- Соцсети и мессенджеры ---
+vk.com
+ok.ru
+max.ru
+
+# --- Банки и биржи ---
+gazprombank.ru
+vtb.ru
+psbank.ru
+alfabank.ru
+nspk.ru
+mironline.ru
+cbr.ru
+moex.com
+
+# --- Операторы связи ---
+mts.ru
+megafon.ru
+t2.ru
+beeline.ru
+rt.ru
+sbermobile.ru
+nextmobile.ru
+dom.ru
+motivtelecom.ru
+
+# --- Здоровье ---
+medsi.ru
+mamadeti.ru
+
+# --- СМИ, ТВ, радио ---
+ria.ru
+tass.ru
+pnp.ru
+kommersant.ru
+vedomosti.ru
+rbc.ru
+iz.ru
+gazeta.ru
+lenta.ru
+rambler.ru
+rg.ru
+kp.ru
+aif.ru
+mk.ru
+sport24.ru
+smotrim.ru
+vesti.ru
+tvzvezda.ru
+vmeste-rf.tv
+russian.rt.com
+1tv.ru
+mirtv.ru
+5-tv.ru
+ren.tv
+spastv.ru
+tnt-online.ru
+ctc.ru
+ntv.ru
+otr-online.ru
+tvc.ru
+tv3.ru
+360tv.ru
+matchtv.ru
+friday.ru
+domashny.ru
+muz-tv.ru
+vitrina.tv
+dumatv.ru
+
+# --- Маркетплейсы и работа ---
+ozon.ru
+megamarket.ru
+wildberries.ru
+avito.ru
+hh.ru
+
+# --- Экосистемы и крупные компании ---
+yandex.ru
+ya.ru
+mail.ru
+x5.ru
+rosatom.ru
+rostec.ru
+rosneft.ru
+nornickel.com
+1c.ru
+trueconf.ru
+
+# --- Магазины и рестораны ---
+dodopizza.ru
+vkusnoitochka.ru
+burgerking.ru
+vkusvill.ru
+spar.ru
+metro-cc.ru
+auchan.ru
+lenta.com
+okmarket.ru
+petrovich.ru
+detmir.ru
+
+# --- Службы доставки ---
+cdek.ru
+dostavista.ru
+kuper.ru
+samokat.ru
+dellin.ru
+
+# --- Коммерция и недвижимость ---
+domclick.ru
+csat.ru
+rosagroleasing.ru
+evotor.ru
+
+# --- Поездки, транспорт, навигация ---
+rzd.ru
+tutu.ru
+aeroflot.ru
+pobeda.aero
+grandtrain.ru
+2gis.ru
+gismeteo.ru
+taximaxim.ru
+citydrive.ru
+delimobil.ru
+belkacar.ru
+
+# --- Медиа и стриминг ---
+rutube.ru
+dzen.ru
+kinopoisk.ru
+premier.one
+okko.tv
+ivi.ru
+ruwiki.ru
+khl.ru
+
+# --- Социальные и волонтёрские платформы ---
+lizaalert.org
+dobro.ru
+onf.ru
+znanierussia.ru
+rsv.ru
+
+# --- Ритейл (по данным операторов; в офиц. список Минцифры НЕ включены) ---
+av.ru
+magnit.ru
+dixy.ru
+5ka.ru
+perekrestok.ru

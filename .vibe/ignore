@@ -1,0 +1,21 @@
+# VibeIDE — игнор для агента (не читает, не индексирует, не подмешивает в контекст)
+
+# Секреты и учётные данные
+.env
+.env.*
+*.key
+*.pem
+*.p12
+secrets/
+credentials/
+
+# Сборка и тяжёлые артефакты
+dist/
+build/
+out/
+*.min.js
+*.bundle.js
+
+# Зависимости
+node_modules/
+vendor/

@@ -1,0 +1,6 @@
+# Runtime-state внутри .vibe/ (остальное — конфигурация VibeIDE, шарится в репо)
+.vibe/.window-lock.json
+.vibe/agent-locks.json
+.vibe/pinned.json
+.vibe/snapshots/
+.vibe/plans/
