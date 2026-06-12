@@ -4,3 +4,8 @@
 .vibe/pinned.json
 .vibe/snapshots/
 .vibe/plans/
+
+# VSCodeSync local cache
+.vscode/vscodesync.json
+.vscode/vscodesync-local-backup/
+.vscodesync-quicktransfer/
