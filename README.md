@@ -111,7 +111,7 @@ fresta/
 | `scripts/deploy/diff_configs.py` | Diff двух server/client.json (UUID/ключи маскируются); `--summary-only`, `--json` | 2 |
 | `scripts/deploy/configs/default/` | Пример сгенерированного набора (демо) | 2 |
 | `scripts/deploy/configs/remote-fresta/` | PoC-набор для fresta.ru (end-to-end пройден) | 2 |
-| `scripts/check/sanity.py` | Pre-flight check зависимостей: python, openssl, ssh, scp, xray, sing-box, yc, … | — |
+| `scripts/check/sanity.py` | Pre-flight check зависимостей: python, openssl, ssh, xray, sing-box, yc, … | — |
 | `scripts/relay/yc_function/handler.py` | Relay-функция на Yandex Cloud (fetch-on-behalf) | 2 |
 | `scripts/relay/fresta_client.py` | Локальный клиент к relay: CLI + HTTP-proxy | 2 |
 | `scripts/tests/test_*.py` | Smoke-тесты (60+ кейсов), ловят регрессии | — |
@@ -131,14 +131,191 @@ fresta/
 - ✅ JSON Schema для конфигов (`schemas/*.schema.json`) + stdlib-валидатор (`validate_config.py`).
 - ✅ Pre-commit хуки (`.pre-commit-config.yaml`): ruff + schema-валидация server/client.json.
 - ⬜ Подключить реальные whitelisted-SNI под своего оператора (выжимка из twl по доменам — в планах).
+- ✅ Пакет на PyPI: `pip install fresta` → 7 entry points в `$PATH` (см. ниже).
 
-## Быстрый старт
+## Установка
 
-### Деплой Метода 1 (VLESS+Reality) одной командой
+Два способа — выбирай по ситуации.
+
+### Из исходного кода (для контрибьюторов)
 
 ```bash
-# Из корня репо. Скрипт сам сгенерит конфиги, зальёт на VPS, поставит Xray,
-# откроет порт, рестартанёт сервис и вернёт client.json / links.txt тебе.
+# Клонировать репозиторий
+git clone https://github.com/VibeIDEProjects/Fresta.git
+cd Fresta
+
+# Создать виртуальное окружение (опционально, но рекомендую)
+python -m venv .venv
+source .venv/bin/activate          # Linux / macOS / WSL / Git Bash
+.venv\Scripts\activate             # Windows PowerShell / cmd
+
+# Поставить в editable-режиме + dev-стек (ruff/mypy/pytest/build/twine)
+pip install -e ".[dev]"
+
+# Проверить, что всё на месте
+make sanity
+make test
+```
+
+Все скрипты доступны и как `python3 scripts/<path>.py`, и как точки входа
+(`fresta-recon`, `fresta-validate` и т.д. — см. ниже). Bash-скрипты (`quickstart.sh`,
+`deploy_vps.sh`, `rotate_keys.sh`) тоже лежат в репо и работают через `bash <path>`.
+
+### Через pip (для пользователей)
+
+```bash
+# Установка
+pip install fresta
+
+# Обновление
+pip install --upgrade fresta
+
+# Установить вспомогательные утилиты, если планируешь деплой (Xray, sing-box)
+# Linux:    bash <(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)  # Xray
+#           см. https://sing-box.app/installation (один пакет по дистрибутиву)
+# Windows:  winget install XTLS.Xray-core
+#           winget install SagerNet.sing-box
+```
+
+После установки в `$PATH` появляются 7 CLI-команд (это `[project.scripts]` из
+`pyproject.toml`):
+
+| Команда | Эквивалент в исходниках | Назначение |
+|---------|------------------------|------------|
+| `fresta-recon`         | `python3 scripts/recon/fresta_recon.py`         | Phase 0: GO/NO-GO по whitelisted-доменам |
+| `fresta-harvest-sni`   | `python3 scripts/harvest/harvest_subscription.py` | выжимка SNI из VLESS-подписки |
+| `fresta-harvest-twl`   | `python3 scripts/harvest/harvest_twl.py`        | harvest whitelisted-IP из openlibrecommunity/twl |
+| `fresta-gen-vless`     | `python3 scripts/deploy/fresta_gen_vless.py`    | генератор server.json / client.json / vless:// |
+| `fresta-validate`      | `python3 scripts/deploy/validate_config.py`     | stdlib-валидатор server/client.json по schemas |
+| `fresta-sanity`        | `python3 scripts/check/sanity.py`               | pre-flight check зависимостей (ssh/openssl/xray/…) |
+| `fresta-diff`          | `python3 scripts/deploy/diff_configs.py`        | diff двух server/client.json |
+
+Bash-скрипты `quickstart.sh` / `deploy_vps.sh` / `rotate_keys.sh` — **не** входят в
+pip-пакет (им нужны `bash` + `ssh` + `scp` на машине, в Windows-экосистеме это
+бессмысленно). Бери их из исходников: `git clone … && bash scripts/deploy/quickstart.sh …`.
+
+> **💡 PATH на Windows:** после `pip install` команды могут не находиться, если папка
+> `Scripts` не в PATH. Добавь вручную один раз:
+> ```powershell
+> # Найти путь
+> python -m site --user-site   # обычно %APPDATA%\Python\Python3X\Scripts
+> # Добавить в PATH (от администратора)
+> [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:APPDATA\Python\Python3X\Scripts", "User")
+> ```
+> **На Linux / macOS:** обычно `~/.local/bin` уже в PATH для pip-user, но если нет:
+> ```bash
+> echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+> ```
+>
+> **Проверить, что всё работает:**
+> ```bash
+> fresta-validate --help    # должен вывести help без ModuleNotFoundError
+> fresta-sanity --version   # должна вывести "fresta-sanity (fresta 0.2.0)"
+> ```
+
+## Использование
+
+### Phase 0 — разведка (GO/NO-GO)
+
+Под мобильным каналом с белым списком (раздать интернет с телефона на ноут):
+
+```bash
+# Из исходников
+python3 scripts/recon/fresta_recon.py scripts/recon/whitelist.txt --probe
+
+# Из pip-пакета (если whitelist.txt нет под рукой — взять из клона)
+git clone --depth 1 https://github.com/VibeIDEProjects/Fresta.git
+fresta-recon Fresta/scripts/recon/whitelist.txt --probe
+```
+
+Вердикт (`GO` / `NO-GO` / `частично`) + таблица по доменам. Детали — в
+`docs/specification.md` §6.
+
+### Harvest whitelisted-SNI (для Reality-конфига)
+
+```bash
+# Из исходников
+python3 scripts/harvest/harvest_subscription.py <подписка-vless> -o sni.txt
+# SNI попадают в sni.txt — этот файл можно скормить fresta-gen-vless
+
+# Из pip-пакета
+fresta-harvest-sni <подписка-vless> -o sni.txt
+```
+
+### Harvest whitelisted-IP (для выбора VPS-провайдера)
+
+```bash
+# Из исходников
+python3 scripts/harvest/harvest_twl.py --providers yandex --min-subnet-density 0.7
+
+# Из pip-пакета
+fresta-harvest-twl --providers yandex --min-subnet-density 0.7
+```
+
+Подробности — `docs/manuals/recon/twl-harvest.md`. Выход: `ips.txt` (43k+ IP, 498 ASN),
+`subnets.txt` (41 /24 с плотностью ≥ 50%), `report.md` + `meta.json`.
+
+### Phase 2 — Метод 1 (VLESS+Reality на VPS)
+
+Тут **только из исходников** (bash + ssh + scp):
+
+```bash
+# Деплой одной командой — генер + scp + server-side install + scp обратно
+git clone --depth 1 https://github.com/VibeIDEProjects/Fresta.git
+cd Fresta
+bash scripts/deploy/quickstart.sh --ssh user@your-vps.example.com
+# Готово: client.json / links.txt лежат в configs/<host>-<date>/
+
+# Сгенерировать только конфиги (без деплоя — для теста/эксперимента)
+fresta-gen-vless --exit-ip ВАШ.IP.ЛИТЕРАЛ --out configs/my-vps
+# → server.json + client.json + links.txt в configs/my-vps/
+
+# Health-check / бенчмарк / ротация — из исходников
+python3 scripts/deploy/check_health.py configs/my-vps
+python3 scripts/deploy/bench.py
+bash scripts/deploy/rotate_keys.sh user@your-vps.example.com
+```
+
+Подробности, опции, troubleshooting — `docs/manuals/vless-vps/deploy.md` и
+`docs/manuals/vless-vps/reality-params.md`.
+
+### Phase 2 — Метод 2 (Yandex Cloud Functions relay)
+
+```bash
+# Из исходников
+python3 scripts/relay/fresta_client.py --check       # проверить, что канал жив
+python3 scripts/relay/fresta_client.py <url>         # fetch через relay
+```
+
+`fresta_client.py` не зарегистрирован как entry point (нужны токен + URL,
+зависит от конфига функции) — используй его напрямую из клонированного репо.
+
+Подробности — `docs/manuals/ycloud-function/deploy.md`.
+
+### Pre-flight / валидация / diff
+
+```bash
+# Sanity-check зависимостей
+fresta-sanity                       # все
+fresta-sanity --required-only       # только обязательные (python, ssh, scp, openssl)
+fresta-sanity --json                # machine-readable для CI
+
+# Валидация server.json / client.json по schemas/*.schema.json
+fresta-validate configs/my-vps/server.json
+fresta-validate configs/my-vps/client.json
+fresta-validate --strict configs/my-vps/   # весь каталог
+
+# Diff двух наборов (после rotate_keys — что изменилось)
+fresta-diff configs/my-vps server.json configs/my-vps-new server.json --summary-only
+# UUID/ключи маскируются по умолчанию; --no-redact если нужны реальные
+```
+
+## Быстрый старт (TL;DR)
+
+**Один-в-один сценарий "есть VPS, деплой за 30 секунд":**
+
+```bash
+# Из исходников
 bash scripts/deploy/quickstart.sh --ssh user@your-vps.example.com
 # Подробности, опции, troubleshooting — docs/manuals/vless-vps/deploy.md
 ```
@@ -148,43 +325,15 @@ bash scripts/deploy/quickstart.sh --ssh user@your-vps.example.com
 когда IP-адрес будет в whitelisted-подсети. PoC на fresta.ru: 89.253.255.108 — end-to-end
 пройден, см. `scripts/deploy/configs/remote-fresta/` и `docs/ROADMAP.md`.
 
-### Остальное (по компонентам)
-
-```bash
-# Фаза 0 — есть ли щель у твоего оператора (запускать под мобильным каналом)
-python3 scripts/recon/fresta_recon.py scripts/recon/whitelist.txt --probe
-
-# Метод 2 — проверить канал (деплой и детали в docs/manuals/ycloud-function/deploy.md)
-python3 scripts/relay/fresta_client.py --check
-
-# Фаза 2 (Метод 1) — сгенерировать конфиги без деплоя (например, для теста)
-python3 scripts/deploy/fresta_gen_vless.py --exit-ip ВАШ.IP.ЛИТЕРАЛ --out configs/my-vps
-
-# Фаза 0 — реальные whitelisted-IP от openlibrecommunity/twl (≈44k IP, 498 ASN)
-python3 scripts/harvest/harvest_twl.py                       # полный harvest
-python3 scripts/harvest/harvest_twl.py --providers yandex --min-subnet-density 0.7   # фильтр
-
-# Smoke-тесты (60+ кейсов — ловят регрессии в recon/handler/gen_vless/harvest/twl)
-bash scripts/tests/run_tests.sh          # Linux / macOS / WSL / Git Bash
-powershell scripts/tests/run_tests.ps1   # Windows PowerShell
-
-# Pre-flight: проверить, что на машине есть всё нужное (ssh, openssl, xray, …)
-python3 scripts/check/sanity.py
-
-# Валидация server.json / client.json по schemas/*.schema.json
-python3 scripts/deploy/validate_config.py scripts/deploy/configs/default/server.json
-python3 scripts/deploy/validate_config.py scripts/deploy/configs/default/client.json
-
-# Diff двух наборов конфигов (UUID/ключи маскируются)
-python3 scripts/deploy/diff_configs.py OLD/new.json NEW/new.json
-```
+**Остальное (по компонентам) — см. секцию «Использование» выше** (с разбиением
+«из исходников» vs «из pip-пакета»).
 
 ### Импорт `client.json` в sing-box
 
 ```bash
 # Linux/macOS/WSL
 mkdir -p ~/.config/sing-box
-cp scripts/deploy/configs/<host>-<date>/client.json ~/.config/sing-box/config.json
+cp configs/<host>-<date>/client.json ~/.config/sing-box/config.json
 sing-box check -c ~/.config/sing-box/config.json
 sing-box run -c ~/.config/sing-box/config.json &
 curl --proxy socks5h://127.0.0.1:1080 https://api.github.com/zen   # 200 OK
@@ -216,13 +365,8 @@ pip install -e .[dev]
 make lint test
 ```
 
-**Установка как пакет:**
-```bash
-pip install fresta    # в $PATH: fresta-recon, fresta-harvest-sni, fresta-harvest-twl,
-                      #          fresta-gen-vless, fresta-validate, fresta-sanity, fresta-diff
-```
-Релиз — по тегу `vX.Y.Z`, авто-publish в PyPI через OIDC trusted publishing
-(см. `docs/PUBLISH.md`).
+См. также секцию «Установка» выше — там подробнее про `pip install fresta` и
+CLI-команды.
 
 ## Для контрибьюторов
 
