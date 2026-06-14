@@ -3,14 +3,12 @@
 > Свет проходит даже сквозь щель.
 
 
-[![CI](https://github.com/fresta/fresta/actions/workflows/tests.yml/badge.svg)](https://github.com/fresta/fresta/actions/workflows/tests.yml)
+[![CI](https://github.com/VibeIDEProjects/Fresta/actions/workflows/tests.yml/badge.svg)](https://github.com/VibeIDEProjects/Fresta/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](pyproject.toml)
 [![stdlib-only](https://img.shields.io/badge/dependencies-stdlib--only-green.svg)](#зависимости)
 
-> **⚠️ Badges:** owner в URL-ах — placeholder `fresta`. При публикации на GitHub
-> замени на свой `<owner>` одним поиском-по-репо: `fresta/fresta` → `<owner>/fresta`.
-> CI badges заработают после первого push в `main`.
+> **⚠️ Badges:** CI-бейдж заработает после первого push в `main` (workflow `.github/workflows/tests.yml`).
 
 Инструмент доступа к открытому интернету в условиях операторских **белых списков**
 (РФ, мобильные сети). Идея: найти и переиспользовать «щель» — инфраструктуру, чьи IP

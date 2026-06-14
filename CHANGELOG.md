@@ -82,5 +82,5 @@
 ### Security
 - **Не утекают** ключи пользовательских деплоев (в `.gitignore`), только PoC-конфиги.
 
-[Unreleased]: https://github.com/fresta/fresta/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/fresta/fresta/releases/tag/v0.1.0
+[Unreleased]: https://github.com/VibeIDEProjects/Fresta/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/VibeIDEProjects/Fresta/releases/tag/v0.1.0
