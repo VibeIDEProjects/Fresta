@@ -18,9 +18,10 @@ fresta · sanity.py — pre-flight чек зависимостей.
   - наличие schema-файлов        — для validate_config
 
 Использование:
-    python3 scripts/sanity.py                  # все проверки, exit 0/1
-    python3 scripts/sanity.py --required-only  # только обязательные
-    python3 scripts/sanity.py --json           # машинный вывод
+    python3 scripts/check/sanity.py              # все проверки, exit 0/1
+    python3 scripts/check/sanity.py --required-only  # только обязательные
+    python3 scripts/check/sanity.py --json           # машинный вывод
+    fresta-sanity                                  # через entry point после pip install
 
 Зависимостей нет (только stdlib + subprocess).
 """
@@ -59,7 +60,8 @@ HINTS = {
     "yc":       "https://cloud.yandex.ru/docs/cli/quickstart",
 }
 
-SCHEMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "schemas")
+# scripts/check/ → scripts/ → repo root → schemas/
+SCHEMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "schemas")
 REQUIRED_SCHEMAS = ["server.schema.json", "client.schema.json"]
 
 

@@ -61,7 +61,7 @@ fresta-harvest-sni   = "scripts.harvest.harvest_subscription:main"
 fresta-harvest-twl   = "scripts.harvest.harvest_twl:main"
 fresta-gen-vless     = "scripts.deploy.fresta_gen_vless:main"
 fresta-validate      = "scripts.deploy.validate_config:main"
-fresta-sanity        = "scripts.sanity:main"
+fresta-sanity        = "scripts.check.sanity:main"
 fresta-diff          = "scripts.deploy.diff_configs:main"
 
 # Минимальный setuptools, чтобы `pip install -e .` и `python -m build` работали.
@@ -74,7 +74,7 @@ build-backend = "setuptools.build_meta"
 #   - пакет fresta/ (метаинформация, __init__.py с __version__)
 #   - скрипты scripts/ как sub-packages (чтобы entry points работали)
 #   - схемы schemas/*.json как package_data (чтобы validate_config.py находил их после install)
-packages = ["fresta", "scripts", "scripts.recon", "scripts.harvest",
+packages = ["fresta", "scripts", "scripts.check", "scripts.recon", "scripts.harvest",
             "scripts.deploy", "scripts.relay", "scripts.relay.yc_function",
             "scripts.tests"]
 
