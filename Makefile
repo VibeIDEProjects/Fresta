@@ -43,7 +43,7 @@ fix:  ## авто-форматирование + авто-фикс ruff
 
 .PHONY: sanity
 sanity:  ## pre-flight check зависимостей (ssh, openssl, python, …)
-	$(PY) scripts/sanity.py
+
 
 .PHONY: validate
 validate:  ## валидация server.json / client.json по schemas/*.schema.json

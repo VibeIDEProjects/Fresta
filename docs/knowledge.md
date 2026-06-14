@@ -341,5 +341,11 @@ fresta/
 
 web_search / web_fetch (ресёрч и чтение статей/репо), Python stdlib (recon, relay,
 harvest — без внешних зависимостей), Team Cymru bulk-whois (ASN), urllib, sing-box /
-Xray (рекомендованные клиенты), `yc` CLI (деплой функции). Клиенты для подписок:
-Shadowrocket, v2rayNG, NekoBox, Throne, Karing.
+
+
+
+## 13. Каталог скриптов (bin/)
+
+| Файл | Путь | Назначение |
+|------|------|------------|
+| sanity.py | in/sanity.py | Pre-flight check зависимостей (python, openssl, ssh, scp, git, curl, yc, xray, sing-box). --required-only для минимального набора, --json для машинного вывода. |
