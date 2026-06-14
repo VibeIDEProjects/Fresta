@@ -1,0 +1,6 @@
+# VibeIDE — рантайм-артефакты (машинно-локальные, не конфиг проекта). Не коммитить.
+.window-lock.json
+agent-locks.json
+commands.trust.json
+snapshots/
+.env

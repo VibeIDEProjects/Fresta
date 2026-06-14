@@ -1,0 +1,108 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  .vibe/providers.json — свои LLM-провайдеры и модели (формат VibeIDE)
+// вавава
+//  Это ПРИМЕР. Чтобы включить — скопируйте нужные блоки в файл .vibe/providers.json
+//  рядом с этим (или переименуйте копию). Формат — JSONC: можно писать // комментарии.
+//
+//  Главные принципы:
+//   • Ключи API в файле НЕ хранятся. Используйте "apiKeyEnv" (переменная окружения)
+//     или "apiKeyRef" (ключ из защищённых настроек VibeIDE). Файл можно коммитить.
+//   • "active": true|false — тумблер. Есть на провайдере И на каждой модели.
+//   • Совпал "id" со встроенным провайдером → ваши поля НАКЛАДЫВАЮТСЯ поверх него (патч).
+//   • "extends": "<id>" → НОВЫЙ провайдер на базе существующего (оригинал остаётся).
+//   • Пишите только ОТЛИЧИЯ — остальное наследуется. Список моделей мёржится по id модели.
+//
+//  id ВСТРОЕННЫХ провайдеров (для патча по "id", для "extends" и "apiKeyRef")
+//  Копируйте отсюда:
+//    openCodeZen       OpenCode Zen          openAI            OpenAI
+//    openCode          OpenCode Go           deepseek          DeepSeek
+//    minimax           MiniMax               mistral           Mistral
+//    openRouter        OpenRouter            xAI               Grok (xAI)
+//    lmRoute           LM Router             openAICompatible  Совместимо с OpenAI API
+//    liteLLM           LiteLLM               googleVertex      Google Vertex AI
+//    gemini            Gemini                microsoftAzure    Microsoft Azure OpenAI
+//    groq              Groq                  awsBedrock        AWS Bedrock
+//    pollinations      Pollinations          ollama            Ollama
+//    anthropic         Anthropic             vLLM / lmStudio   vLLM / LM Studio
+//  (Тот же список с описаниями — команда «VibeIDE: Показать распознанные провайдеры».)
+// ─────────────────────────────────────────────────────────────────────────────
+{
+	"version": 1,
+
+	"providers": [
+
+		// ── 1. Свой OpenAI-совместимый провайдер «с нуля» ──────────────────────────
+		{
+			"id": "my-proxy",
+			"name": "Мой прокси",
+			"active": true,
+			"protocol": "openai",                  // openai | anthropic | gemini
+			"baseURL": "https://llm.mycorp.local/v1",
+			"auth": { "type": "header", "name": "x-api-key" }, // или "bearer" / { "type":"query","name":"key" }
+			"apiKeyEnv": "MYCORP_LLM_KEY",         // ключ из переменной окружения
+			"headers": { "x-team": "platform" },   // статические заголовки (по желанию)
+			"timeoutMs": 120000,
+			"models": {
+				"fetch": true                      // авто-список из <baseURL>/models
+			}
+		},
+
+		// ── 2. Полное определение модели (когда каталога нет или нужно зафиксировать) ─
+		{
+			"id": "minimax",
+			"name": "MiniMax",
+			"active": true,
+			"baseURL": "https://api.minimax.io/v1",
+			"apiKeyRef": "minimax",                // взять ключ из защищённых настроек
+			"models": {
+				"fetch": false,
+				"static": [
+					{
+						"id": "MiniMax-M3",
+						"name": "MiniMax M3 (1M)",
+						"active": true,
+						"default": true,              // авто-выбор по умолчанию
+						"pinned": true,               // показывать вверху
+						"contextWindow": 1000000,
+						"toolFormat": "openai",       // openai | anthropic | gemini | none
+						"vision": true,
+						"reasoning": { "canTurnOff": true, "field": "thinking", "effort": ["low", "high"] },
+						"cost": { "input": 0.3, "output": 1.2 }
+					}
+				]
+			}
+		},
+
+		// ── 3. Переопределить ВСТРОЕННЫЙ провайдер (совпадение по id) ───────────────
+		// Выключить целиком:
+		{ "id": "googleVertex", "active": false },
+
+		// Оставить у встроенного OpenRouter только 2 модели:
+		{
+			"id": "openRouter",
+			"models": {
+				"fetch": false,
+				"static": [
+					{ "id": "anthropic/claude-sonnet-4.5", "default": true },
+					{ "id": "deepseek/deepseek-v3.2" }
+				]
+			}
+		},
+
+		// Выключить ОДНУ модель у провайдера (остальные как были):
+		{ "id": "minimax", "models": { "static": [ { "id": "MiniMax-M2", "active": false } ] } },
+
+		// ── 4. extends — клон встроенного как отдельный вариант (оригинал остаётся) ──
+		{
+			"id": "openRouter-fav",
+			"extends": "openRouter",
+			"name": "OpenRouter — избранное",
+			"apiKeyRef": "openRouter",
+			"models": {
+				"fetch": false,
+				"static": [ { "id": "x-ai/grok-4", "default": true } ]
+			}
+		}
+
+	]
+}

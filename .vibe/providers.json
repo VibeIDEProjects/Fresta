@@ -1,0 +1,107 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  .vibe/providers.json — провайдер Kimi (Moonshot AI)
+//
+//  Куда положить: скопировать в <ваш-проект>/.vibe/providers.json
+//  Ключ в файле НЕ хранится. Заведите переменную окружения MOONSHOT_API_KEY
+//  (ключ берётся на https://platform.moonshot.ai/console/api-keys).
+//
+//  ВАЖНО:
+//   • После добавления/изменения провайдера ПЕРЕЗАПУСТИТЕ VibeIDE — ключи из apiKeyEnv
+//     читаются только при запуске, изменения надёжно подхватываются после рестарта.
+//   • Чтобы модели реально отвечали, нужна сборка VibeIDE ≥ 1.1.0 (транспорт динамических
+//     провайдеров). В более ранних — модель появится в списке, но запрос не уйдёт.
+//   • Авто-список моделей (models.fetch: true или опущено — дефолт) тянется из
+//     <baseURL>/v1/models при наличии ключа; static-записи оверрайдят капы по id.
+//     models.fetch: false — только статика.
+// ─────────────────────────────────────────────────────────────────────────────
+{
+	"version": 1,
+
+	"providers": [
+		{
+			"id": "minimax-dyn",
+			"name": "MiniMax (свой)",
+			"active": false,
+			"order": 1,
+			"protocol": "openai", // OpenAI-совместимый API
+			"baseURL": "https://api.minimax.io/v1",
+			"auth": "bearer",
+			"apiKeyEnv": "MINIMAX_API_KEY", // положи ключ в .vibe/.env: MINIMAX_API_KEY=...
+			"timeoutMs": 120000,
+			"docsUrl": "https://platform.minimax.io/docs/api-reference/text-openai-api",
+			"apiKeyUrl": "https://platform.minimax.io/user-center/basic-information/interface-key",
+			"models": {
+				"fetch": true, // авто-список из https://api.minimax.io/v1/models; static ниже оверрайдит капы по id
+				"static": [
+					{ "id": "MiniMax-M2", "name": "MiniMax M2", "active": true, "default": true, "pinned": true, "contextWindow": 204800, "toolFormat": "openai" },
+					{ "id": "MiniMax-M2.5", "name": "MiniMax M2.5", "active": true, "contextWindow": 204800, "toolFormat": "openai" }
+				]
+			}
+		},
+		{
+			"id": "kimi",
+			"name": "Kimi (Moonshot)",
+			"active": false,
+			"order": 1, // выше прочих ваших провайдеров в выборе модели
+			"protocol": "openai", // OpenAI-совместимый API
+			"baseURL": "https://api.moonshot.ai/v1", // Китай: https://api.moonshot.cn/v1
+			"auth": "bearer",
+			"apiKeyEnv": "MOONSHOT_API_KEY", // ключ из переменной окружения (в файле нет)
+			"timeoutMs": 120000,
+			"docsUrl": "https://platform.kimi.ai/docs",
+			"apiKeyUrl": "https://platform.moonshot.ai/console/api-keys",
+
+			"models": {
+				"fetch": true, // авто-список из https://api.moonshot.ai/v1/models (нужен ключ MOONSHOT_API_KEY)
+				"static": [
+					{
+						"id": "kimi-k2.7-code", // нативный id (слаг moonshotai/Kimi-K2.7-Code — это HuggingFace/агрегаторы)
+						"name": "Kimi K2.7 Code",
+						"active": true,
+						"default": true, // coding-модель — лучший дефолт для IDE
+						"pinned": true,
+						"contextWindow": 262144, // ~256K
+						"maxOutputTokens": 32768,
+						"toolFormat": "openai",
+						"cost": { "input": 0.95, "output": 4.00, "cacheRead": 0.19 } // $/1M; «думающая» модель
+					},
+					{
+						"id": "kimi-k2.6",
+						"name": "Kimi K2.6",
+						"active": true,
+						"pinned": true, // показывать вверху
+						"contextWindow": 262144, // ~256K
+						"maxOutputTokens": 32768,
+						"toolFormat": "openai",
+						"vision": true,
+						"cost": { "input": 0.68, "output": 3.41 } // $/1M токенов
+					},
+					{
+						"id": "kimi-k2.5",
+						"name": "Kimi K2.5",
+						"active": true,
+						"contextWindow": 262144,
+						"maxOutputTokens": 32768,
+						"toolFormat": "openai",
+						"vision": true,
+						"cost": { "input": 0.35, "output": 1.89 }
+					},
+					{
+						"id": "moonshot-v1-128k",
+						"name": "Moonshot v1 (128K)",
+						"active": true,
+						"contextWindow": 131072,
+						"toolFormat": "openai"
+					},
+					{
+						"id": "moonshot-v1-32k",
+						"name": "Moonshot v1 (32K)",
+						"active": true,
+						"contextWindow": 32768,
+						"toolFormat": "openai"
+					}
+				]
+			}
+		}
+	]
+}
