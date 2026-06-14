@@ -24,6 +24,7 @@
       **Yandex Cloud (AS200350, 8 224 whitelisted-IP) — приоритет №1.** Selectel/Timeweb — запасные, Beget исключён.
       VK (5 032 IP, 8 /24 с плотностью 60-83%) — лидер по плотности, но не сдаёт VPS конечным.
 - [ ] 📱 **погонять \python3 scripts/recon/fresta_recon.py scripts/recon/whitelist.txt --probe\** ← *твой ближайший шаг*
+> **Autopilot (deferred):** требует мобильной сети с белым списком (нет в текущей среде)
       Подтвердить: за доменами реально Yandex Cloud/Selectel и probe-handshake проходит сквозь whitelist.
 
 ## Метод 2 — serverless fetch-relay
@@ -32,9 +33,12 @@
 - [x] 💻 плумбинг протестирован мной end-to-end на моке (fetch 200 / токен-гейт / SSRF-блок)
 
 - [ ] ☁️ **задеплоить функцию** (yc CLI — см. `docs/manuals/ycloud-function/deploy.md`)
+> **Autopilot (deferred):** требует аккаунта Yandex Cloud / денег на VPS (human-only)
 - [ ] 📱 **`python3 scripts/relay/fresta_client.py --check`** — подтвердить, что `functions.yandexcloud.net`
+> **Autopilot (deferred):** требует мобильной сети с белым списком (нет в текущей среде)
       проходит у твоего оператора и exit-IP = Яндекса
 - [ ] 📱 прогнать реальный заблокированный ресурс через CLI
+> **Autopilot (deferred):** требует мобильной сети с белым списком (нет в текущей среде)
 
 ## Фаза 2 — настоящий туннель (Метод 1)
 
@@ -62,11 +66,16 @@
       - `scripts/deploy/quickstart.sh` — локальный одноступенчатый (генерация → scp → deploy → scp обратно)
       - `docs/manuals/vless-vps/deploy.md` — полный гайд с двумя сценариями (любой сервер / whitelisted-VPS) + troubleshooting
 - [ ] ☁️ поднять VPS на whitelisted-провайдере (Timeweb / Selectel / Beget / Yandex),
+> **Autopilot (deferred):** требует аккаунта Yandex Cloud / денег на VPS (human-only)
       проверить плотность /24 по `scripts/harvest/reports/harvest-report.md` + `scripts/harvest/twl-data/subnets.txt`
 - [ ] 💻 `bash scripts/deploy/quickstart.sh --ssh root@<новый-VPS>` — сгенерировать и задеплоить
+> **Autopilot (deferred):** требует готового VPS (см. пункт выше)
 - [ ] 💻 клиент (sing-box) на устройство или роутер, или `links.txt` в Shadowrocket/v2rayNG
+> **Autopilot (deferred):** требует готового VPS + устройство пользователя (human-only)
 - [ ] 📱 проверить проходимость и стабильность под мобильным каналом с белым списком
+> **Autopilot (deferred):** требует мобильной сети с белым списком (нет в текущей среде)
 - [ ] ⏭ перейти к Фазе 3: ротация фронтов
+> **Autopilot (deferred):** все пункты Фазы 3 заблокированы (см. ниже)
 
 ---
 
@@ -157,15 +166,23 @@
 ### Что дальше (Phase 3, ротация фронтов)
 
 - [ ] 💻 Фаза 3: `scripts/orchestrate.py` — N VPS × M SNI × автоперебор (live-config, мониторинг, health-check каждые 60 с, автопереключение).
+> **Autopilot (deferred):** требует N работающих VPS для оркестрации (нет в наличии)
 - [ ] 💻 `scripts/wly_check.py` — проверка IP через `wly.zarazaex.xyz/check?ip=…` (оффлайн-сигнал не 100%).
+> **Autopilot (deferred):** эндпоинт wly.zarazaex.xyz недоступен (404/403)
 - [ ] 💻 `scripts/bench_aggregated.py` — бенчмарк по всем развёрнутым VPS, json-вывод для сравнения.
+> **Autopilot (deferred):** требует работающих VPS для бенчмарка (нет в наличии)
 - [ ] 📱 **whitelisted-VPS** деплой + прогон под мобильным каналом — главный открытый TODO.
+> **Autopilot (deferred):** требует мобильной сети с белым списком (нет в текущей среде)
 - [ ] 📱 Метод 2 — задеплоить функцию на YC, прогнать под мобильным каналом.
+> **Autopilot (deferred):** требует мобильной сети с белым списком (нет в текущей среде)
 
 ### Техдолг (когда-нибудь)
 
 - [ ] Перевести smoke-тесты на **pytest** (`make test-pytest` уже работает, но классический `run_tests.{sh,ps1}` остаётся для Windows-надёжности).
+> **Autopilot (deferred):** make test-pytest уже работает; классические скрипты остаются для совместимости
 
 
 - [ ] Перевести печать прогресса в `harvest_*` и `recon` на `rich` (зависимость — обсуждаемо).
+> **Autopilot (deferred):** добавляет внешнюю зависимость (обсуждаемо)
 - [ ] Перевести `urllib` → `httpx` (если согласимся на внешнюю зависимость; сейчас всё stdlib-only).
+> **Autopilot (deferred):** добавляет внешнюю зависимость (обсуждаемо); стек stdlib-only работает
