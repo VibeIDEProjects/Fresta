@@ -78,6 +78,7 @@ jobs:
       # ── Trusted publishing (OIDC, рекомендуется) ──
       - name: Publish to PyPI via OIDC
         if: inputs.to_testpypi != true && inputs.dry_run != true
+        continue-on-error: true   # если OIDC не настроен → fallback к API-токену
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           # без `password:` — workflow получает short-lived токен через OIDC
@@ -85,6 +86,7 @@ jobs:
 
       - name: Publish to TestPyPI via OIDC
         if: inputs.to_testpypi == true && inputs.dry_run != true
+        continue-on-error: true
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
@@ -92,7 +94,7 @@ jobs:
 
       # ── Fallback: API-токен (если trusted publishing не настроен) ──
       - name: Publish to PyPI via API token
-        if: inputs.to_testpypi != true && inputs.dry_run != true
+        if: always() && inputs.to_testpypi != true && inputs.dry_run != true
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
