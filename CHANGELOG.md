@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-14
+
 ### Fixed
 - **`scripts/recon/fresta_recon.py:180` — SyntaxError на Python 3.11/3.10/3.9/3.8**.
   Вложенный f-string с одинаковыми одинарными кавычками (`f"…{', '.join(f'…{n.split(' - ')[0]}'…)}"`)
@@ -24,8 +26,10 @@
 - **`.gitignore`: добавлен `.env`** — файл с SSH-коннектом не должен случайно
   уехать в коммит (уже исключён `__pycache__/`, `dist/`, но `.env` пропустили).
 
+## [0.2.0] - 2026-06-14
+
 ### Added
-- **Подготовка к PyPI** (этот коммит): Python-пакет `fresta/` с `__version__` + `py.typed`
+- **Подготовка к PyPI**: Python-пакет `fresta/` с `__version__` + `py.typed`
   (PEP 561). `pyproject.toml` обновлён до PEP 621 + SPDX-лицензии (PEP 639) +
   `[project.scripts]` с 7 entry points (`fresta-recon`, `fresta-harvest-sni`,
   `fresta-harvest-twl`, `fresta-gen-vless`, `fresta-validate`, `fresta-sanity`,
@@ -54,6 +58,17 @@
   `--summary-only` (только важное: UUID/ключи/shortId/порт) и `--json` (для CI).
   UUID и base64url-ключи маскируются по умолчанию (`--no-redact` отключает).
 - **Makefile**: новые цели `make sanity`, `make validate`, `make diff OLD=… NEW=…`.
+- **Реорганизация `scripts/`**: `check_health.py`, `bench.py`, `rotate_keys.sh` перенесены
+  из корня `scripts/` в `scripts/deploy/`. Логика: все три — **post-deploy операции vless-vps**,
+  рядом с `quickstart.sh` / `deploy_vps.sh` / `fresta_gen_vless.py` они образуют единый пайплайн.
+  В корне `scripts/` остаются только подпапки-категории (`recon/`, `harvest/`, `deploy/`,
+  `relay/`, `tests/`) + `README.md`.
+- **DevEx / CI**: `pyproject.toml` (PEP 621 + ruff + mypy + pytest),
+  `.editorconfig`, `LICENSE` (MIT), `CHANGELOG.md` (Keep a Changelog), `CONTRIBUTING.md`,
+  `.github/workflows/tests.yml` (тесты на ubuntu × py3.8–3.12 + windows-latest + ruff),
+  `.github/dependabot.yml` (auto-PR для dev-зависимостей и GitHub Actions),
+  `.github/ISSUE_TEMPLATE/{bug_report,feature_request}.yml`, `Makefile` (12 целей).
+  Рантайм остаётся stdlib-only; dev-стек поднимается одной командой `pip install -e .[dev]`.
 
 ### Changed
 - **README.md**: заполнены `<owner>` placeholder'ы в badge-URL (→ `fresta/fresta` —
@@ -67,19 +82,6 @@
 - **.pre-commit-config.yaml**: исправлен путь хука `fresta-validate-config`
   `python scripts/validate_config.py` → `python scripts/deploy/validate_config.py`
   (без этого хук был сломан после переезда файла).
-
-### Ранее в Unreleased
-- **Реорганизация `scripts/`**: `check_health.py`, `bench.py`, `rotate_keys.sh` перенесены
-  из корня `scripts/` в `scripts/deploy/`. Логика: все три — **post-deploy операции vless-vps**,
-  рядом с `quickstart.sh` / `deploy_vps.sh` / `fresta_gen_vless.py` они образуют единый пайплайн.
-  В корне `scripts/` остаются только подпапки-категории (`recon/`, `harvest/`, `deploy/`,
-  `relay/`, `tests/`) + `README.md`.
-- **DevEx / CI** (предыдущий коммит): `pyproject.toml` (PEP 621 + ruff + mypy + pytest),
-  `.editorconfig`, `LICENSE` (MIT), `CHANGELOG.md` (Keep a Changelog), `CONTRIBUTING.md`,
-  `.github/workflows/tests.yml` (тесты на ubuntu × py3.8–3.12 + windows-latest + ruff),
-  `.github/dependabot.yml` (auto-PR для dev-зависимостей и GitHub Actions),
-  `.github/ISSUE_TEMPLATE/{bug_report,feature_request}.yml`, `Makefile` (12 целей).
-  Рантайм остаётся stdlib-only; dev-стек поднимается одной командой `pip install -e .[dev]`.
 
 ## [0.1.0] - 2026-06-14
 
@@ -106,5 +108,7 @@
 ### Security
 - **Не утекают** ключи пользовательских деплоев (в `.gitignore`), только PoC-конфиги.
 
-[Unreleased]: https://github.com/VibeIDEProjects/Fresta/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/VibeIDEProjects/Fresta/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/VibeIDEProjects/Fresta/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/VibeIDEProjects/Fresta/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/VibeIDEProjects/Fresta/releases/tag/v0.1.0
