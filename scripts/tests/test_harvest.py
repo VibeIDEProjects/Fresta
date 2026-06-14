@@ -3,7 +3,18 @@ import base64
 import importlib.util
 import os
 import shutil
+import sys
 import tempfile
+
+# Фикс для Windows-консоли: по умолчанию stdout/stderr в cp1251/cp866, и
+# `print("→")` / `print("🇷🇺")` падают с UnicodeEncodeError. Переключаем
+# на utf-8 с errors="replace" — на *nix ничего не меняется, на Windows
+# некорректные символы заменяются на U+FFFD (тест не падает, вывод информативен).
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass  # уже закрыт или не текстовый (subprocess-pipe не трогаем)
 
 # Тест лежит в scripts/tests/, а сам скрипт — в scripts/harvest/.
 _HARV_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "harvest", "harvest_subscription.py"))
@@ -27,7 +38,7 @@ cases = [
     ("🇷🇺 Beget — #2",        "Beget"),
     ("🇳🇱 The Netherlands — #14", "The Netherlands"),
     ("☁ Timeweb, Cloud Hosting", "Timeweb, Cloud Hosting"),
-    ("🏴‍☠️ Selectel #1",      "Selectel"),  # pirate flag, спецсимволы
+    ("🏴☠️ Selectel #1",      "Selectel"),  # pirate flag, спецсимволы
     ("# просто коммент",     "?"),  # после stripper остаётся пусто
     ("   ",                  "?"),
     ("vk.com%20—%20#5",     "vk.com"),  # url-encoded
