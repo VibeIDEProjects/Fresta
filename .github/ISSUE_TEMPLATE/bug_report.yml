@@ -1,0 +1,98 @@
+name: 🐛 Bug Report
+description: Сообщить об ошибке в коде или доках.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за багрепорт! Пожалуйста, заполните шаблон — это ускорит разбор.
+        **Не вставляйте** реальные ключи / UUID / токены / `info.txt` — только факты.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Компонент
+      options:
+        - Phase 0 — recon (`scripts/recon/`)
+        - Harvest — zieng2/wl (`scripts/harvest/harvest_subscription.py`)
+        - Harvest — twl (`scripts/harvest/harvest_twl.py`)
+        - Метод 1 (vless-vps) — генератор (`scripts/deploy/fresta_gen_vless.py`)
+        - Метод 1 (vless-vps) — деплой (`scripts/deploy/quickstart.sh` / `deploy_vps.sh`)
+        - Метод 2 (ycloud-function) — handler (`scripts/relay/yc_function/handler.py`)
+        - Метод 2 (ycloud-function) — клиент (`scripts/relay/fresta_client.py`)
+        - Smoke-тесты (`scripts/tests/`)
+        - Документация (`docs/`, `README.md`, `manuals/`)
+        - Другое
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия / коммит
+      placeholder: "например, v0.1.0, 1a2b3c4, или 'main от 2026-06-14'"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. `bash scripts/deploy/quickstart.sh --ssh user@…`
+        2. Получаю ошибку `bind: address already in use`
+        3. ...
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение / логи
+      placeholder: |
+        ```
+        [paste logs here, без секретов]
+        ```
+    validations:
+      required: true
+
+  - type: dropdown
+    id: env
+    attributes:
+      label: Окружение
+      options:
+        - Linux
+        - macOS
+        - Windows + WSL
+        - Windows + Git Bash
+        - Windows + PowerShell
+        - VPS (Timeweb / Selectel / Beget / Yandex Cloud / …)
+        - Другое
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python
+      placeholder: "3.11.4"
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Прочее (контекст, скриншоты, …)
+    validations:
+      required: false

@@ -1,0 +1,27 @@
+version: 2
+
+updates:
+  # dev-зависимости (ruff/mypy/pytest): еженедельно.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "deps"
+    labels: ["dependencies"]
+    groups:
+      dev-tools:
+        patterns: ["ruff", "mypy", "pytest", "pytest-cov", "types-requests"]
+    # Рантайм-зависимостей у проекта нет, но dependabot всё равно следит,
+    # не появились ли они в pyproject.toml.
+
+  # GitHub Actions: еженедельно.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci"
+    labels: ["dependencies"]

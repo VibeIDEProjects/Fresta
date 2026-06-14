@@ -56,6 +56,7 @@ CDN_SIGNATURES = [
     ("CDNVIDEO",   "CDNvideo",     "no",   "CDN — relay не развернуть, но годится как SNI"),
     ("DDOS-GUARD", "DDoS-Guard",   "no",   "WAF/CDN, edge закрыт (возможный SNI)"),
     ("ROSTELECOM", "Ростелеком",   "no",   "оператор, не разворачиваемо"),
+    ("TELETECH",   "TELETECH/AS208398", "no", "балканский edge-провайдер (Яндекс продал блок)"),
     ("VIMPELCOM",  "Билайн",       "no",   "оператор"),
     ("MEGAFON",    "МегаФон",      "no",   "оператор"),
     # --- Западные CDN: в РФ-белом списке почти не встречаются, но мало ли ---
@@ -106,10 +107,16 @@ def resolve_all(domains, workers=32):
 
 
 def cymru_bulk(ips):
-    """IP -> (asn, as_name) через bulk-whois Team Cymru (без ключей).
+    """IP -> list[(asn, as_name)] через bulk-whois Team Cymru (без ключей).
+
+    ВАЖНО: один IP может иметь НЕСКОЛЬКО ASN (например, origin-AS родителя и
+    announcing-AS транзитёра). Реальный кейс — IP Яндекса в 2024+ отдают
+    пару (13238/YANDEX, 208398/TELETECH). Берём ОБА, дальше `classify()`
+    выберет приоритетный.
+
     Если сеть не пускает к whois.cymru.com:43 — вернём пусто и обойдёмся
     оффлайн-сигналами (диапазоны Cloudflare)."""
-    info = {}
+    info: dict[str, list[tuple[str, str]]] = {}
     v4 = [ip for ip in ips if ":" not in ip]
     targets = v4 or list(ips)
     if not targets:
@@ -137,7 +144,8 @@ def cymru_bulk(ips):
         asn, ip, _prefix, _cc, _reg, _alloc, asname = parts[:7]
         if not (asn.isdigit() or asn == "NA"):
             continue
-        info[ip] = (asn, asname)
+        # Несколько ASN на один IP копим в список (см. док-стринг).
+        info.setdefault(ip, []).append((asn, asname))
     return info
 
 
@@ -148,19 +156,35 @@ def is_cloudflare_range(ip):
     return any(addr in net for net in CLOUDFLARE_V4)
 
 
-def classify(ip, cymru):
-    """IP -> (cdn_name, deploy, detail). Сначала точный оффлайн-сигнал CF,
-    потом имя AS из Cymru."""
+def classify(ip, cymru_list_for_ip):
+    """IP -> (cdn_name, deploy, detail). Сначала оффлайн-сигнал CF, потом
+    проходим по списку ASN (один IP может иметь origin и announcing AS).
+    Первый матч в CDN_SIGNATURES выигрывает (приоритет — развёртываемые CDN);
+    если ничего не матчит — берём первую запись как fallback с пометкой '?'
+    и перечислением остальных ASN в detail."""
     if is_cloudflare_range(ip):
         return ("Cloudflare", "yes", "Workers — основной кандидат")
-    asn, asname = cymru.get(ip, ("?", ""))
-    up = asname.upper()
+    rows = cymru_list_for_ip or []
+    if not rows:
+        return ("неизвестно", "?", "нет данных ASN")
+    # Приоритет — по CDN_SIGNATURES (yes > hard > no), не по порядку в rows.
+    # Иначе IP Яндекса с парой (TELETECH, YANDEX) в случайном порядке мог бы
+    # попасть на TELETECH.
     for key, name, deploy, detail in CDN_SIGNATURES:
-        if key in up:
-            return (name, deploy, detail)
-    if asname:
-        return (f"{asname} (AS{asn})", "?", "не распознан как разворачиваемый CDN")
-    return ("неизвестно", "?", "нет данных ASN")
+        for asn, asname in rows:
+            if key in asname.upper():
+                # Соберём "другие AS" (все ASN кроме того, что сматчился) для отладки.
+                others = [(a, n) for a, n in rows if (a, n) != (asn, asname)]
+                extra = ""
+                if others:
+                    extra = f" (другие AS: {', '.join(f'AS{a}/{n.split(' - ')[0]}' for a, n in others)})"
+                return (name, deploy, detail + extra)
+    # Ни одна сигнатура не сматчилась — отдаём первую запись как '?'.
+    asn, asname = rows[0]
+    extra = ""
+    if len(rows) > 1:
+        extra = f" (ещё AS: {', '.join(f'AS{a}' for a, _ in rows[1:])})"
+    return (f"{asname} (AS{asn})", "?", "не распознан как разворачиваемый CDN" + extra)
 
 
 def build(domains_ips, cymru):
@@ -170,7 +194,7 @@ def build(domains_ips, cymru):
     for domain, ips in domains_ips.items():
         best = None  # (deploy_rank, cdn, deploy, detail)
         for ip in ips:
-            cdn, deploy, detail = classify(ip, cymru)
+            cdn, deploy, detail = classify(ip, cymru.get(ip, []))
             bucket = per_cdn.setdefault(cdn, {"deploy": deploy, "detail": detail,
                                               "domains": set(), "ips": set()})
             bucket["domains"].add(domain)

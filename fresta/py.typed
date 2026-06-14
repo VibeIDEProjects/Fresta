@@ -1,0 +1,6 @@
+# Marker file for PEP 561 — signals type-checkers (mypy, pyright) that
+# the fresta package supports type hints. The package itself has minimal
+# runtime API (only `__version__` / `__summary__`); type-checkers should
+# not complain about missing stubs.
+#
+# См. https://peps.python.org/pep-0561/ — пакет публикуется без `fresta-stubs`.

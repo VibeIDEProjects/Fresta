@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fresta.local/schemas/server.schema.json",
+  "title": "fresta · Xray server.json (VLESS+Reality+TCP)",
+  "description": "JSON Schema для server.json, который генерит fresta_gen_vless.py и потребляет Xray-core. Не валидирует 'правильность' ключей — только форму. Проверка пары ключей делается отдельным тестом в `scripts/tests/test_gen_vless.py`.",
+  "type": "object",
+  "required": ["log", "inbounds", "outbounds"],
+  "additionalProperties": false,
+  "properties": {
+    "log": {
+      "type": "object",
+      "required": ["loglevel"],
+      "properties": {
+        "loglevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error", "none"]
+        }
+      }
+    },
+    "inbounds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["listen", "port", "protocol", "settings", "streamSettings"],
+        "additionalProperties": false,
+        "properties": {
+          "listen":     { "type": "string", "description": "IP или 0.0.0.0" },
+          "port":       { "type": "integer", "minimum": 1, "maximum": 65535 },
+          "protocol":   { "type": "string", "const": "vless" },
+          "settings": {
+            "type": "object",
+            "required": ["clients", "decryption"],
+            "properties": {
+              "clients": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["id", "flow"],
+                  "properties": {
+                    "id":   { "type": "string", "format": "uuid" },
+                    "flow": { "type": "string", "maxLength": 0 }
+                  }
+                }
+              },
+              "decryption": { "type": "string", "const": "none" }
+            }
+          },
+          "streamSettings": {
+            "type": "object",
+            "required": ["network", "security", "realitySettings"],
+            "properties": {
+              "network":  { "type": "string", "const": "tcp" },
+              "security": { "type": "string", "const": "reality" },
+              "realitySettings": {
+                "type": "object",
+                "required": ["show", "dest", "xver", "serverNames", "privateKey", "shortIds"],
+                "properties": {
+                  "show":       { "type": "boolean" },
+                  "dest":       { "type": "string", "pattern": "^[A-Za-z0-9._-]+:[0-9]{1,5}$" },
+                  "xver":       { "type": "integer", "enum": [0, 1, 2] },
+                  "serverNames": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "type": "string", "minLength": 1 }
+                  },
+                  "privateKey": {
+                    "type": "string",
+                    "description": "X25519 private key, base64url без padding, 43 символа. Также принимает плейсхолдер для демо-конфигов.",
+                    "oneOf": [
+                      { "const": "PRIVATE_KEY_REPLACE_ME_BASE64URL",
+                        "description": "плейсхолдер (демо configs/default/)" },
+                      { "pattern": "^[A-Za-z0-9_-]{43}$",
+                        "description": "настоящий X25519 private key" }
+                    ]
+                  },
+                  "shortIds": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^([0-9a-fA-F]{0,16})$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "outbounds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["protocol"],
+        "properties": {
+          "protocol": { "type": "string", "enum": ["freedom", "blackhole", "vless", "socks", "http"] },
+          "tag":      { "type": "string" }
+        }
+      }
+    }
+  }
+}

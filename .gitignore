@@ -9,3 +9,47 @@
 .vscode/vscodesync.json
 .vscode/vscodesync-local-backup/
 .vscodesync-quicktransfer/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor / IDE
+.idea/
+.vscode/launch.json
+.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# Временные фикстуры smoke-тестов (на случай, если cleanup упал)
+scripts/tests/_harv_tmp/
+scripts/tests/_harv_twl_tmp/
+scripts/harvest/_harv*.txt
+
+# Сгенерированные пользовательские конфиги (демо в configs/default/ под tracked)
+# Любой каталог configs/<host>-<date>/ — твой собственный, не в репо.
+scripts/deploy/configs/*/server.json
+scripts/deploy/configs/*/client.json
+scripts/deploy/configs/*/client_*.json
+scripts/deploy/configs/*/links.txt
+scripts/deploy/configs/*/info.txt
+scripts/deploy/configs/*/gen-keys.sh
+!scripts/deploy/configs/default/
+!scripts/deploy/configs/remote-fresta/
+
+# PoC-набор remote-fresta — в репо, но с предупреждением (реальные ключи fresta.ru)
+# Не использовать как шаблон для своего деплоя!
+
+# twl-harvest: большие файлы игнорим, отчёт+meta трекаем
+scripts/harvest/twl-data/repo/
+scripts/harvest/twl-data/ips.txt
+scripts/harvest/twl-data/subnets.txt
+scripts/harvest/twl-data/last_commit.txt
+!scripts/harvest/twl-data/twl-harvest-report.md
+!scripts/harvest/twl-data/meta.json

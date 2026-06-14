@@ -1,0 +1,36 @@
+# fresta · .gitattributes
+# Нормализация line endings (LF для всего, что НЕ Windows-specific):
+#   * text=auto            — git сам определит по содержимому, нормализует в LF при коммите
+#   *.sh text eol=lf       — shell-скрипты ОБЯЗАНЫ быть LF (иначе bash упадёт на \r)
+#   *.py text eol=lf       — Python (PEP 8, чтоб не было кракозябров в коде)
+#   *.md  text eol=lf      — Markdown, тоже LF
+#   *.yml text eol=lf      — YAML
+#   *.json text eol=lf     — JSON
+#   *.bat text eol=crlf    — Windows .bat-файлы: CR+LF, иначе cmd их не запустит.
+#   *.ps1 text eol=crlf    — PowerShell на Windows ожидает CR+LF
+#   .gitattributes         — сам файл — LF
+#   .gitignore             — и этот тоже LF
+#
+# binary-маркеры для всего, что точно не текст (хотя у нас таких нет):
+#   *.png binary
+
+*               text=auto eol=lf
+*.sh            text eol=lf
+*.py            text eol=lf
+*.md            text eol=lf
+*.txt           text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.json          text eol=lf
+*.toml          text eol=lf
+*.css           text eol=lf
+*.html          text eol=lf
+*.js            text eol=lf
+*.bat           text eol=crlf
+*.ps1           text eol=crlf
+*.cmd           text eol=crlf
+
+# Архивы — оставляем как есть
+*.zip           -text
+*.tar.gz        -text
+*.tgz           -text

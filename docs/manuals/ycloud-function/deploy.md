@@ -1,4 +1,8 @@
-# fresta · relay на Yandex Cloud Functions (Метод 2)
+# fresta · Метод 2: relay на Yandex Cloud Functions
+
+> **О терминологии:** в проекте «Метод 2» и «Фаза 2» — разные оси. «Метод 2» —
+> это YC Functions (см. `docs/knowledge.md`, раздел 5), «Фаза 2» в
+> `docs/ROADMAP.md` — это **Метод 1** (VLESS+Reality на VPS). Не путать.
 
 Минимальный рабочий кусок: stateless **fetch-relay**. Клиент шлёт функции конверт
 с запросом, функция ходит в открытый интернет со своего yandexcloud-IP (он в белом
@@ -13,8 +17,8 @@
 
 ## Файлы
 
-- `scripts/yc_function/handler.py` — функция (stdlib, без зависимостей).
-- `scripts/fresta_client.py` — локальный клиент: CLI + минимальный HTTP-proxy.
+- `scripts/relay/yc_function/handler.py` — функция (stdlib, без зависимостей).
+- `scripts/relay/fresta_client.py` — локальный клиент: CLI + минимальный HTTP-proxy.
 
 ## Что нужно
 
@@ -25,7 +29,7 @@
 ## Деплой функции
 
 ```bash
-cd scripts/yc_function
+cd scripts/relay/yc_function
 zip /tmp/fresta-fn.zip handler.py
 
 yc serverless function create --name fresta-relay
@@ -49,24 +53,24 @@ yc serverless function get --name fresta-relay --format json | grep -i invoke
 
 ## Клиент
 
-Из папки `scripts`:
+Из корня репо (любой cwd):
 
 ```bash
 export FRESTA_FUNC_URL="https://functions.yandexcloud.net/<function-id>"
 export FRESTA_TOKEN="ТОТ_ЖЕ_СЕКРЕТ_ЧТО_В_ФУНКЦИИ"
 
 # 1. Проверка канала — покажет exit-IP (должен быть Яндекса)
-python3 fresta_client.py --check
+python3 scripts/relay/fresta_client.py --check
 
 # 2. Достать заблокированную страницу/API
-python3 fresta_client.py https://www.google.com/
-python3 fresta_client.py https://api.github.com/zen
+python3 scripts/relay/fresta_client.py https://www.google.com/
+python3 scripts/relay/fresta_client.py https://api.github.com/zen
 
 # 3. POST с телом
-python3 fresta_client.py -X POST https://httpbin.org/post -d '{"a":1}'
+python3 scripts/relay/fresta_client.py -X POST https://httpbin.org/post -d '{"a":1}'
 
 # 4. Локальный HTTP-proxy (только http:// цели — для curl/apt)
-python3 fresta_client.py --proxy 8080
+python3 scripts/relay/fresta_client.py --proxy 8080
 http_proxy=http://127.0.0.1:8080 curl http://example.com
 ```
 
@@ -96,7 +100,7 @@ http_proxy=http://127.0.0.1:8080 curl http://example.com
 2. **VLESS + Reality на российском VPS** (Метод 1): IP в whitelist + whitelisted-SNI
    (`storage.yandex.net`, `userapi.com`, `cdnvideo.ru`…) + `fp=chrome`. Самый стабильный.
 3. Реальные whitelisted-IP/SNI под своего оператора — из репозитория
-   openlibrecommunity/twl, кормить ими `scripts/fresta_recon.py`.
+   openlibrecommunity/twl, кормить ими `scripts/recon/fresta_recon.py`.
 
 ## Юридическая рамка
 

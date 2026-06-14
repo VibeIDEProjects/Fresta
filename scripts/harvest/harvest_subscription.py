@@ -63,8 +63,11 @@ def provider_from_label(label):
 
 
 def is_strong(sni):
+    """Hint встречается как отдельный доменный лейбл (между точками или по краям),
+    а не как подстрока. Иначе 'rutube123.evil.ru' ложно матчит hint='rutube'."""
     s = sni.lower()
-    return any(h in s for h in STRONG_SNI_HINTS)
+    return any(re.search(rf"(?:^|\.){re.escape(h)}(?:\.|$)", s)
+               for h in STRONG_SNI_HINTS)
 
 
 def harvest(lines):

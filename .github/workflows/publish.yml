@@ -1,0 +1,107 @@
+name: publish
+
+# Публикация wheel+sdist на PyPI при пуше тега v*.*.*.
+# Рекомендуемый способ — Trusted Publishing (OIDC) без API-токенов:
+#   1) на https://pypi.org/manage/account/publishing/ добавить pending publisher:
+#      Owner: <owner>, Repository: fresta, Workflow: publish.yml, Environment: release
+#   2) (опц.) сделать то же на https://test.pypi.org/manage/account/publishing/ для тестовых прогонов
+#   3) НЕ создавать PYPI_API_TOKEN в secrets — OIDC сам выпустит short-lived токен.
+#
+# Альтернатива (если trusted publishing не настроен): добавить secret PYPI_API_TOKEN
+# и раскомментировать блок `password: ${{ secrets.PYPI_API_TOKEN }}` ниже.
+#
+# Конкурентность: новый тег = новая версия, не отменяем.
+# Workflow НЕ запускается при push в main — только на тегах (это и есть релиз).
+
+on:
+  push:
+    tags:
+      - "v*.*.*"            # v0.2.0, v0.2.1, v1.0.0
+  workflow_dispatch:
+    inputs:
+      to_testpypi:
+        description: "Залить на test.pypi.org вместо production"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Только собрать артефакты, не заливать"
+        type: boolean
+        default: false
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false   # не отменять релизные билды
+
+jobs:
+  build:
+    name: build sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build
+        run: python -m build
+        # артефакты: dist/*.whl + dist/*.tar.gz
+
+      - name: Check with twine
+        run: twine check dist/*
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: publish to ${{ inputs.to_testpypi == true && 'TestPyPI' || 'PyPI' }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release   # создать в Settings → Environments; можно требовать approval
+    permissions:
+      id-token: write    # обязательно для trusted publishing (OIDC)
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      # ── Trusted publishing (OIDC, рекомендуется) ──
+      - name: Publish to PyPI via OIDC
+        if: inputs.to_testpypi != true && inputs.dry_run != true
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # без `password:` — workflow получает short-lived токен через OIDC
+          packages-dir: dist/
+
+      - name: Publish to TestPyPI via OIDC
+        if: inputs.to_testpypi == true && inputs.dry_run != true
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+
+      # ── Fallback: токен (если trusted publishing не настроен) ──
+      # Закомментировано; раскомментируй и добавь secret PYPI_API_TOKEN:
+      #
+      # - name: Publish to PyPI via API token
+      #   if: inputs.to_testpypi != true && inputs.dry_run != true
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      #   run: twine upload dist/*
+
+      - name: Dry-run only
+        if: inputs.dry_run == true
+        run: |
+          echo "DRY RUN: артефакты собраны, но не залиты"
+          ls -la dist/

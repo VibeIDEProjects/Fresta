@@ -109,7 +109,7 @@
 | Минцифры / kod.ru | Официальный перечень белого списка (по названиям сервисов) | `whitelist.txt` — 143 домена (реконструкция «сервис → домен») |
 | Хабр, zarazaex, `habr.com/ru/articles/1027276` | Технический разбор + скан белых списков | Модель L3+L7, UDP/DNS мёртвы, состав списка (Yandex Cloud доминирует), 6 методов обхода, пивот концепции |
 | `github.com/openlibrecommunity/twl` | Эмпирический скан whitelisted-IP + ~1176 SNI по операторам | Источник реальных IP/SNI под своего оператора (ещё не подключён — в roadmap) |
-| `github.com/zieng2/wl` | Почасовая VLESS-подписка для обхода | `sni_candidates.txt` (19 SNI) + `harvest-report.md`; подтверждение РФ-провайдеров; инженерные уроки |
+| `github.com/zieng2/wl` | Почасовая VLESS-подписка для обхода | `sni_candidates.txt` (19 SNI) + `scripts/harvest/reports/harvest-report.md`; подтверждение РФ-провайдеров; инженерные уроки |
 
 ---
 
@@ -142,8 +142,52 @@
   (CLI + HTTP-proxy). **Плумбинг протестирован end-to-end на моке платформы**:
   реальный fetch (200), токен-гейт (403), SSRF-защита (loopback заблокирован).
   На самой Yandex Cloud ещё не задеплоено.
-- `harvest_subscription.py` → `sni_candidates.txt` + `harvest-report.md` — выжимка из
+- `harvest_subscription.py` → `sni_candidates.txt` + `scripts/harvest/reports/harvest-report.md` — выжимка из
   живой подписки. Прогнан на zieng2/wl.
+- `harvest_twl.py` → `scripts/harvest/twl-data/` (`ips.txt`, `subnets.txt`, `twl-harvest-report.md`,
+  `meta.json`) — **живой harvest** из openlibrecommunity/twl. 498 ASN, ≈44k IP,
+  41 /24 с плотностью ≥ 50% (топ-1: Yandex Cloud AS200350 = 8224 IP). Гайд:
+  `docs/manuals/recon/twl-harvest.md`.
+- `fresta_gen_vless.py` (Фаза 2) — генератор server.json (Xray) / client.json (sing-box) /
+  vless://-ссылок под whitelisted-SNI. X25519-ключи через `openssl` subprocess
+  (фолбэк — плейсхолдеры + `gen-keys.sh`). **Протестирован мной** на сборке с парой
+  SNI: server.json валидный, links.txt содержит 19 vless://-ссылок (по одной на SNI).
+  На VPS ещё не деплоился.
+- `scripts/tests/test_*.py` (60+ кейсов) + `run_tests.sh` / `run_tests.ps1` — smoke-тесты (рядом, в `scripts/tests/`)
+  всех 4 скриптов. Прогоняются локально (test_handler дополнительно делает реальный
+  fetch к `https://example.com/`). **Все зелёные.** Поймали и починили 3 бага:
+  1) `fresta_recon.cymru_bulk` перезаписывал последний ASN — IP Яндекса (origin 13238 +
+     announcing 208398/TELETECH) ложно классифицировались как TELETECH → **NO-GO** для
+     всей Фазы 0. Фикс: `info[ip] = list[(asn, asname)]`, `classify` итерирует по
+     `CDN_SIGNATURES` (приоритет yes > hard > no).
+  2) `yc_function/handler.handler` падал с `AttributeError` на «валидный JSON, но не
+     объект» (строка/массив). Фикс: `isinstance(req, dict)` после `json.loads`.
+  3) `harvest_subscription.is_strong` давал ложные срабатывания на подстроках
+     (`"rutube" in "rutube123.evil.ru"` → True). Фикс: регексп по `\b.` границам
+     доменного лейбла.
+- `scripts/deploy/check_health.py` (новое) — health-check деплоя vless-vps: SOCKS5 alive?
+  exit-IP совпадает? 5 синтетических проб (ipify / github / example / cloudflare /
+  httpbin), latency median+p95, вердикт OK/PARTIAL.
+- `scripts/deploy/bench.py` (новое) — мини-бенчмарк (latency × 10 + 1 МБ throughput через
+  Cloudflare speed-test). Прямой режим без зависимостей, через-SOCKS режим — подсказка
+  на check_health для полноценного бенча.
+- `scripts/deploy/rotate_keys.sh` (новое) — ротация UUID + X25519 + shortId на сервере
+  **без переустановки Xray** (бэкап → python-patch → `xray run -test` → `systemctl restart`).
+- **DevEx / CI** (новое): `pyproject.toml` (PEP 621 + ruff + mypy + pytest),
+  `.editorconfig`, `LICENSE` (MIT), `CHANGELOG.md` (Keep a Changelog), `CONTRIBUTING.md`,
+  `.github/workflows/tests.yml` (тесты на ubuntu × py3.8–3.12 + windows-latest + ruff),
+  `.github/dependabot.yml` (auto-PR для dev-зависимостей и GitHub Actions),
+  `.github/ISSUE_TEMPLATE/{bug_report,feature_request}.yml`, `Makefile` (12 целей).
+  Рантайм остаётся stdlib-only; dev-стек поднимается одной командой `pip install -e .[dev]`.
+
+- **PoC Метода 1 (VLESS+Reality) на fresta.ru:8443 (2026-06-14)**: end-to-end пройден.
+  Xray v26.3.27 + sing-box 1.13.13; `curl --proxy socks5h` через туннель дал
+  `https://api.github.com/zen` = 200 OK, exit-IP сменился с моего на `89.253.255.108`
+  (наш сервер). Подробности и артефакты — в `docs/ROADMAP.md` (Фаза 2 / Метод 1) и
+  `scripts/deploy/configs/remote-fresta/`. **Это НЕ под белым списком оператора** (IP
+  `89.253.255.108` — не в whitelisted-подсети), но доказывает, что **связка
+  рабочая**. С реальным VPS на Timeweb/Selectel/Beget будет работать так же — там
+  только IP поменять.
 
 «Протестировано мной» = в песочнице, чистая логика/плумбинг. «Под 📱/☁️» = ещё
 предстоит вживую (см. ROADMAP.md).
@@ -156,11 +200,26 @@
 проходят ТСПУ: `ads.x5.ru` (59, лидер), `api-maps.yandex.ru`, `5post-gate.x5.ru`,
 `cdp.x5.ru`, `smartcaptcha.yandexcloud.net`, `max.ru`, `m.vk.com`, `iv.kommersant.ru`,
 `rutube.ru`, `api.yandex.ru`, `yandex.ru`, `st.ozone.ru`, `kinopoisk.ru`,
-`img.perekrestok.ru`, `passport.yandex.ru`. Полный список — `scripts/sni_candidates.txt`.
+`img.perekrestok.ru`, `passport.yandex.ru`. Полный список — `scripts/harvest/sni_candidates.txt`.
 Домены X5 Group доминируют. (Срез точечный, подписка обновляется почасово.)
 
+**Whitelisted-IP по ASN** (twl-harvest, июнь 2026) — ТОП-5 провайдеров с наибольшим
+числом IP в `twl-data/ips.txt`:
+1. **Yandex.Cloud LLC** (AS200350) — 8224 IP
+2. **OOO "Sovremennye setevye tekhnologii"** (AS34879) — 3315 IP
+3. **CDNvideo LLC** (AS57363) — 3021 IP
+4. **LLC VK** (AS47764) — 2617 IP
+5. **YANDEX LLC** (AS13238) — 2230 IP
+Полный список — `scripts/harvest/twl-data/twl-harvest-report.md`. ASN-лидер = Yandex Cloud,
+что подтверждает основную гипотезу проекта (Метод 2 на YC — рабочая щель).
+
+**/24-подсети с плотностью ≥ 50%** (`twl-data/subnets.txt`) — 41 подсеть, лидер
+`95.213.45.0/24` (213/256 = 83.2%). Это кандидаты для оценки «всем ли IP в этой
+подсети повезло» (если у нашего VPS IP в таком /24, оператор с высокой вероятностью
+его пропустит).
+
 **РФ-провайдеры с whitelisted-IP** (для своего VPS): Beget, Selectel, Timeweb, VK,
-cloud.ru, Yandex Cloud. Совпадают с `CDN_SIGNATURES` в recon.
+cloud.ru, Yandex Cloud. Совпадают с `CDN_SIGNATURES` в recon И с топ-ASN из twl.
 
 **Транспорт у живых узлов:** в основном Reality (152/160), типы tcp/grpc/xhttp/ws,
 fp разнообразный (firefox, qq, chrome, safari, random — анти-детект).
@@ -178,6 +237,15 @@ fp разнообразный (firefox, qq, chrome, safari, random — анти-
 - **Серверы быстро умирают** (арм-рейс) → автообновление/ротация.
 - **Метод 2 (fetch-relay) терминирует TLS до цели сам** → видит трафик в открытом
   виде. Это твоя функция, но факт; для прозрачного e2e нужен туннель (WS/VPS).
+- **Cymru bulk отдаёт несколько ASN на один IP** (origin + announcing после перепродажи
+  блока). Реальный кейс: IP Яндекса в 2024+ отдают пару (13238/YANDEX, 208398/TELETECH).
+  Нельзя брать последнюю запись — теряешь origin. Бери **список** и итерируй приоритеты
+  сигнатур.
+- **«Валидный JSON» ≠ «JSON-объект»**: после `json.loads` всегда проверяй `isinstance(d, dict)`
+  перед `d.get(...)`. Иначе строка `"foo"` в body крашит хендлер `AttributeError`.
+- **Подстрочный поиск в доменах — источник ложных срабатываний**. `"yandex" in "yandexcloud.net"`
+  True, `"rutube" in "rutube123.evil.ru"` True. Для матчинга по доменным лейблам — регексп
+  с границами по `.`.
 
 ---
 
@@ -186,33 +254,80 @@ fp разнообразный (firefox, qq, chrome, safari, random — анти-
 ```
 fresta/
 ├── README.md                       обзор проекта
-├── scripts/
-│   ├── fresta_recon.py             Фаза 0: GO/NO-GO по whitelist-доменам
-│   ├── fresta_client.py            Метод 2: локальный клиент (CLI + HTTP-proxy)
-│   ├── harvest_subscription.py     выжимка SNI/провайдеров из VLESS-подписки
-│   ├── whitelist.txt               домены белого списка (реконструкция)
-│   ├── whitelist.sample.txt        пример формата
-│   ├── sni_candidates.txt          whitelisted-SNI для Reality (harvest)
-│   └── yc_function/handler.py      Метод 2: relay-функция Yandex Cloud
+├── LICENSE                         MIT
+├── CHANGELOG.md                    Keep a Changelog
+├── CONTRIBUTING.md                 гайд для контрибьюторов
+├── pyproject.toml                  ruff + mypy + pytest + метаданные
+├── Makefile                        make test / lint / harvest-all / deploy / …
+├── .editorconfig                   единые правила оформления
+├── .github/                        CI + шаблоны issues
+│   ├── workflows/tests.yml         smoke-тесты × 5 OS × 5 Python
+│   ├── dependabot.yml              авто-PR зависимостей
+│   └── ISSUE_TEMPLATE/             bug_report.yml + feature_request.yml
+├── scripts/                        код (см. scripts/README.md)
+│   ├── README.md                   карта scripts/ (что в каждой подпапке)
+│   ├── recon/                      Фаза 0: GO/NO-GO по whitelist-доменам
+│   │   ├── fresta_recon.py
+│   │   ├── whitelist.txt           домены белого списка (реконструкция)
+│   │   └── whitelist.sample.txt    пример формата
+│   ├── harvest/                    открытые источники (whitelist-IP, SNI)
+│   │   ├── harvest_subscription.py выжимка SNI/провайдеров из VLESS-подписки
+│   │   ├── harvest_twl.py          harvest whitelisted-IP из openlibrecommunity/twl
+│   │   ├── sni_candidates.txt      whitelisted-SNI для Reality (harvest)
+│   │   └── twl-data/               выход harvest'а: ips.txt / subnets.txt / report.md / meta.json
+│   ├── deploy/                     Метод 1: VLESS+Reality
+│   │   ├── fresta_gen_vless.py     генератор конфигов
+│   │   ├── deploy_vps.sh           серверный деплой
+│   │   ├── quickstart.sh           локальный одноступенчатый деплой
+│   │   ├── check_health.py         health-check деплоя (SOCKS5 + exit-IP)
+│   │   ├── bench.py                мини-бенчмарк (latency + throughput)
+│   │   ├── rotate_keys.sh          ротация UUID/X25519/shortId на сервере
+│   │   └── configs/                сгенерированные наборы (default/ + remote-fresta/)
+│   ├── relay/                      Метод 2: Yandex Cloud relay
+│   │   ├── yc_function/handler.py  функция relay
+│   │   └── fresta_client.py        локальный клиент (CLI + HTTP-proxy)
+│   └── tests/                      smoke-тесты (60+ кейсов) + probe_reality.py
+│       ├── run_tests.sh            прогон на Linux/macOS/WSL/Git Bash
+│       └── run_tests.ps1           прогон на Windows PowerShell
 └── docs/
+    ├── README.md                   карта docs/
     ├── specification.md            идея, threat model, архитектура, роадмап
     ├── ROADMAP.md                  чек-лист done/todo + где гонять
-    ├── fresta_relay_README.md      деплой и использование Метода 2
-    ├── harvest-report.md           снимок SNI/провайдеров из подписки
-    └── knowledge.md                ← этот файл
+    ├── knowledge.md                ← этот файл
+    └── manuals/                    пошаговые гайды (карта — manuals/README.md)
+        ├── deploy-method1.md       Метод 1: quickstart + troubleshooting
+        ├── reality-params.md       Reality-параметры + генератор
+        ├── relay-method2.md        Метод 2: YC Functions relay + клиент
+        └── twl-harvest.md          harvest whitelisted-IP (twl)
+
+# Отчёты (данные, не доки)
+#   scripts/harvest/reports/harvest-report.md      снимок подписки zieng2/wl
+#   scripts/harvest/twl-data/twl-harvest-report.md снимок harvest_twl (≈44k IP)
 ```
 
 ## 10. Что дальше (next steps)
 
-1. 📱 Под реальной мобильной сетью с белым списком: `fresta_recon.py whitelist.txt --probe`
-   (закрыть GO/NO-GO) и `fresta_client.py --check` (подтвердить, что
+1. 📱 Под реальной мобильной сетью с белым списком: `python3 scripts/recon/fresta_recon.py
+   scripts/recon/whitelist.txt --probe` (закрыть GO/NO-GO) и
+   `python3 scripts/relay/fresta_client.py --check` (подтвердить, что
    `functions.yandexcloud.net` проходит у оператора).
-2. ☁️ Задеплоить Метод 2 на Yandex Cloud (`fresta_relay_README.md`).
-3. **Фаза 2 — настоящий туннель:** VPS на Beget/Selectel/Timeweb (проверить плотность
-   /24-подсети в whitelist) + VLESS+Reality конфиг с SNI из `sni_candidates.txt` +
-   `fp=chrome` + IP-литерал → клиент sing-box на устройство/роутер. Альтернатива —
-   WS через API Gateway → VPS (но вектор банят).
-4. 💻 Подключить `openlibrecommunity/twl` — реальные whitelisted-IP/SNI под своего оператора.
+2. ☁️ Задеплоить Метод 2 (ycloud-function) на Yandex Cloud (`docs/manuals/ycloud-function/deploy.md`).
+3. **Фаза 2 — настоящий туннель:** генератор `fresta_gen_vless.py` готов, осталось
+   задеплоить. План: VPS на Beget/Selectel/Timeweb (проверить плотность /24-подсети
+   в whitelist по `scripts/harvest/reports/harvest-report.md` + `scripts/harvest/twl-data/subnets.txt`) → `python3 fresta_gen_vless.py --exit-ip <IP>
+   --out configs/<имя>` → `server.json` на VPS в `/usr/local/etc/xray/config.json` →
+   `client.json` или `links.txt` в sing-box/Shadowrocket → проверить под мобильным
+   каналом. Подробности — `docs/manuals/vless-vps/reality-params.md`.
+4. ✅ **Подключён `openlibrecommunity/twl`** — `scripts/harvest/harvest_twl.py` уже
+   собирает реальные whitelisted-IP (498 ASN, ≈44k IP, 41 /24 с плотностью ≥ 50%).
+   Топ-1: Yandex Cloud (8224 IP), топ-2: Sovremennye setevye tekhnologii (3315),
+   топ-3: CDNvideo (3021), топ-4: VK (2617), топ-5: YANDEX LLC (2230).
+   Использовать: `python3 scripts/harvest/harvest_twl.py --providers <имя>` для фильтра,
+   `scripts/harvest/twl-data/ips.txt` для выбора VPS-провайдера,
+   `scripts/harvest/twl-data/subnets.txt` для оценки плотности /24.
+   Подробности — `docs/manuals/recon/twl-harvest.md`.
+5. ⏭ **Фаза 3 — ротация фронтов:** несколько VPS × несколько SNI × автоперебор при
+   отвале. Генератор к этому уже готов (вызов с разными `--out`).
 
 ## 11. Рамки и caveats
 

@@ -1,0 +1,149 @@
+{
+  "ok": true,
+  "source_repo": "https://github.com/openlibrecommunity/twl.git",
+  "branch": "main",
+  "commit_sha": "984ff2dd26ade907240011a7150e56516f55dfee",
+  "generated_at": "2026-06-14T15:22:24+00:00",
+  "filters": {
+    "providers": [],
+    "asns": [],
+    "min_count": 1,
+    "min_subnet_density": 0.5
+  },
+  "files": {
+    "sorted": true,
+    "subnets": true,
+    "verified": true
+  },
+  "asn_count": 498,
+  "ip_count": 43811,
+  "subnet_count": 41,
+  "top_asn": [
+    {
+      "name": "Yandex.Cloud LLC",
+      "asn": 200350,
+      "ip_count": 8224,
+      "tag": "Yandex Cloud"
+    },
+    {
+      "name": "OOO \"Sovremennye setevye tekhnologii\"",
+      "asn": 34879,
+      "ip_count": 3315,
+      "tag": "OOO \"Sovremennye setevye tekhnologii\""
+    },
+    {
+      "name": "CDNvideo LLC",
+      "asn": 57363,
+      "ip_count": 3021,
+      "tag": "CDNvideo LLC"
+    },
+    {
+      "name": "LLC VK",
+      "asn": 47764,
+      "ip_count": 2617,
+      "tag": "VK"
+    },
+    {
+      "name": "YANDEX LLC",
+      "asn": 13238,
+      "ip_count": 2230,
+      "tag": "Yandex Cloud"
+    },
+    {
+      "name": "GLOBAL CLOUD NETWORK LLC",
+      "asn": 204720,
+      "ip_count": 2029,
+      "tag": "GLOBAL CLOUD NETWORK LLC"
+    },
+    {
+      "name": "LLC VK",
+      "asn": 47541,
+      "ip_count": 1964,
+      "tag": "VK"
+    },
+    {
+      "name": "PJSC Rostelecom",
+      "asn": 12389,
+      "ip_count": 1643,
+      "tag": "Rostelecom"
+    },
+    {
+      "name": "DDOS-GUARD LTD",
+      "asn": 57724,
+      "ip_count": 1321,
+      "tag": "DDOS-GUARD LTD"
+    },
+    {
+      "name": "EuroByte LLC",
+      "asn": 210079,
+      "ip_count": 1097,
+      "tag": "EuroByte LLC"
+    },
+    {
+      "name": "SERVICEPIPE LLC",
+      "asn": 201706,
+      "ip_count": 1020,
+      "tag": "SERVICEPIPE LLC"
+    },
+    {
+      "name": "\"Domain names registrar REG.RU\", Ltd",
+      "asn": 197695,
+      "ip_count": 895,
+      "tag": "\"Domain names registrar REG.RU\", Ltd"
+    },
+    {
+      "name": "PJSC \"Vimpelcom\"",
+      "asn": 3216,
+      "ip_count": 841,
+      "tag": "PJSC \"Vimpelcom\""
+    },
+    {
+      "name": "HLL LLC",
+      "asn": 51115,
+      "ip_count": 783,
+      "tag": "HLL LLC"
+    },
+    {
+      "name": "Regional State Institution \"Regional Center of automated information resource o",
+      "asn": 48316,
+      "ip_count": 520,
+      "tag": "Regional State Institution \"Regional Center of automated information resource o"
+    },
+    {
+      "name": "LLC IVI.RU",
+      "asn": 57629,
+      "ip_count": 511,
+      "tag": "LLC IVI.RU"
+    },
+    {
+      "name": "JSC Selectel",
+      "asn": 49505,
+      "ip_count": 511,
+      "tag": "Selectel"
+    },
+    {
+      "name": "JSC \"TIMEWEB\"",
+      "asn": 9123,
+      "ip_count": 484,
+      "tag": "Timeweb"
+    },
+    {
+      "name": "LLC VK",
+      "asn": 28709,
+      "ip_count": 451,
+      "tag": "VK"
+    },
+    {
+      "name": "VKontakte Ltd",
+      "asn": 47542,
+      "ip_count": 366,
+      "tag": "VK"
+    }
+  ],
+  "outputs": {
+    "ips": "ips.txt",
+    "subnets": "subnets.txt",
+    "report": "twl-harvest-report.md",
+    "meta": "meta.json"
+  }
+}

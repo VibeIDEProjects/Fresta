@@ -1,0 +1,62 @@
+# fresta · pre-commit хуки
+# Установка: pip install pre-commit && pre-commit install
+# Что делает:
+#   - ruff check (линтер)
+#   - ruff format (формат)
+#   - trailing-whitespace + end-of-file-fixer (мелочи, но в репо они уже учтены)
+#   - check-yaml (тест.yml и issue-templates валидны)
+#   - check-json (server.json, client.json валидны)
+#   - запрет мискейсов (private key/UUID, реальные IP)
+#   - schema-валидация server.json/client.json (наш собственный скрипт)
+#
+# Чтобы обойти хук разово: git commit --no-verify
+# Чтобы прогнать на всех файлах: pre-commit run --all-files
+
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        # Markdown и сгенерированные JSON — НЕ трогаем.
+        exclude: '\.(md|json)$'
+      - id: end-of-file-fixer
+        # JSON-конфиги Xray/sing-box не должны иметь финальный newline (некоторые парсеры ломаются).
+        exclude: '\.json$'
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+        # ips.txt (44k IP) и аналоги — большие, но tracked; пускаем.
+        exclude: 'scripts/harvest/twl-data/(ips|subnets)\.txt$'
+      - id: detect-private-key
+        # НЕ пускать приватные ключи в коммит. Срабатывает ложно на наши PRIVATE_KEY_REPLACE_ME_BASE64URL
+        # (это 43-символьная base64url-строка, не валидный private key), но мы всё равно
+        # оставляем хук: если случайно закоммитили реальный ключ — он обнаружится.
+
+  # Наш собственный хук: schema-валидация server.json / client.json.
+  # Использует stdlib-валидатор, не требует `jsonschema`.
+  - repo: local
+    hooks:
+      - id: fresta-validate-config
+        name: fresta · validate server/client.json
+        description: "Проверяет server.json / client.json по schemas/*.schema.json"
+        entry: python scripts/validate_config.py
+        language: system
+        types: [json]
+        # В репо много JSON-файлов (configs/default/, configs/remote-fresta/, harvest/meta.json,
+        # twl-harvest-report.md — md, не json, и т.д.). Прогоняем только server/client.
+        files: '^(schemas/|.*(server|client)\.json$)'
+        # Только не-playground конфиги (default + remote-fresta + новые).
+        exclude: '^.*__pycache__/.*$'

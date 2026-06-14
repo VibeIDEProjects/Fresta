@@ -1,0 +1,34 @@
+# editorconfig.org
+# Единые правила оформления для всех редакторов (VSCode, PyCharm, vim, …).
+# ВАЖНО: скрипты и доки уже в репо с этими настройками (LF, UTF-8, 4 spaces).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Markdown и shell — переводы строк LF, финальный newline, без trim
+# (важно: код-блоки могут содержать «хвостовые» пробелы как часть синтаксиса).
+[*.{md,markdown}]
+trim_trailing_whitespace = false
+
+# Сгенерированные JSON-конфиги Xray/sing-box: 2 пробела, как принято у них.
+[*.{json,jsonc}]
+indent_size = 2
+insert_final_newline = false   # trailing-newline ломает некоторые парсеры
+
+# Bash: 4 пробела, LF.
+[*.{sh,bash}]
+indent_size = 4
+
+# TOML: 2 пробела (как принято в Python-экосистеме).
+[*.toml]
+indent_size = 2
+
+# YAML: 2 пробела.
+[*.{yml,yaml}]
+indent_size = 2

@@ -1,0 +1,60 @@
+name: ✨ Feature Request
+description: Предложить улучшение / новую фичу.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Прежде чем предложить фичу — загляните в `docs/ROADMAP.md` (что в планах)
+        и `docs/knowledge.md` (что мы делаем и почему). Возможно, идея уже там
+        и ждёт своего часа.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Область
+      options:
+        - Новый метод обхода (третий вектор)
+        - Phase 0 (recon / harvest)
+        - vless-vps (Метод 1)
+        - ycloud-function (Метод 2)
+        - Оркестрация / ротация (Phase 3)
+        - DevEx (CI / линтеры / тесты / пакетирование)
+        - Документация
+        - Другое
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решает
+      placeholder: |
+        Я заметил, что …, и это мешает …, потому что …
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Предлагаемое решение
+      placeholder: |
+        Я бы сделал …, API выглядело бы как …, дока — … .
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы
+      placeholder: |
+        Пробовал …, но у него проблема … .
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Контекст, скриншоты, прототипы
+    validations:
+      required: false

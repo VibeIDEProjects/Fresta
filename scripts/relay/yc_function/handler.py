@@ -80,6 +80,9 @@ def handler(event, context):
         req = json.loads(raw)
     except (ValueError, TypeError):
         return _err(400, "bad envelope")
+    if not isinstance(req, dict):
+        # Валидный JSON, но не объект (напр. "строка" или [1,2,3]) — считаем битым конвертом.
+        return _err(400, "envelope must be a JSON object")
 
     url = req.get("url", "")
     method = (req.get("method") or "GET").upper()
