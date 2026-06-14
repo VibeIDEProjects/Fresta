@@ -6,6 +6,24 @@
 
 ## [Unreleased]
 
+### Fixed
+- **`scripts/recon/fresta_recon.py:180` — SyntaxError на Python 3.11/3.10/3.9/3.8**.
+  Вложенный f-string с одинаковыми одинарными кавычками (`f"…{', '.join(f'…{n.split(' - ')[0]}'…)}"`)
+  — синтаксис PEP 701, который поддерживается только с Python 3.12. На 3.11 падало
+  с `SyntaxError: f-string: unmatched '('` уже на этапе `pytest --collect`, и
+  `test_recon.py` не запускался. Вынес внутренний join в отдельную переменную,
+  внутренний f-string взял в двойные кавычки — теперь работает на всём
+  диапазоне 3.8–3.12, который заявлен в `pyproject.toml:requires-python`.
+- **`scripts/check/sanity.py:get_version` — FAIL на OpenSSL 3.0+**.
+  Перебирал только флаги `--version` / `-V` / `-version`, а OpenSSL 3.x принимает
+  только `version` (subcommand без тире) — `openssl --version` отвечает
+  `Invalid command '--version'`, returncode ≠ 0, sanity помечал openssl как
+  FAIL даже когда он стоял. Добавлен dict `_BARE_INCOMPATIBLE` с правильными
+  флагами для исключений (`openssl: ["version", "--version", "-V"]`), плюс
+  fallback на stderr (ssh -V ходит туда) и фильтр help-баннера (`help:` / `usage:`).
+- **`.gitignore`: добавлен `.env`** — файл с SSH-коннектом не должен случайно
+  уехать в коммит (уже исключён `__pycache__/`, `dist/`, но `.env` пропустили).
+
 ### Added
 - **Подготовка к PyPI** (этот коммит): Python-пакет `fresta/` с `__version__` + `py.typed`
   (PEP 561). `pyproject.toml` обновлён до PEP 621 + SPDX-лицензии (PEP 639) +

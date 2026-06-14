@@ -19,6 +19,7 @@ dist/
 .mypy_cache/
 .pytest_cache/
 .coverage
+.env
 htmlcov/
 
 # Editor / IDE

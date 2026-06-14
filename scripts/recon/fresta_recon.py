@@ -177,7 +177,10 @@ def classify(ip, cymru_list_for_ip):
                 others = [(a, n) for a, n in rows if (a, n) != (asn, asname)]
                 extra = ""
                 if others:
-                    extra = f" (другие AS: {', '.join(f'AS{a}/{n.split(' - ')[0]}' for a, n in others)})"
+                    # NB: PEP 701 (Python 3.12) разрешает одинаковые кавычки во вложенных f-string,
+                    # но мы поддерживаем 3.8+, поэтому внутренний f-string берём в двойных кавычках.
+                    inner = ", ".join(f"AS{a}/{n.split(' - ')[0]}" for a, n in others)
+                    extra = f" (другие AS: {inner})"
                 return (name, deploy, detail + extra)
     # Ни одна сигнатура не сматчилась — отдаём первую запись как '?'.
     asn, asname = rows[0]

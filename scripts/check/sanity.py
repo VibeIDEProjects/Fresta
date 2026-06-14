@@ -65,14 +65,30 @@ SCHEMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."
 REQUIRED_SCHEMAS = ["server.schema.json", "client.schema.json"]
 
 
+# CLI-утилиты, у которых bare-имя программы без флага ведёт себя
+# нестандартно: выводит help, баннер, интерактивно ждёт ввода и т.п.
+# Для них нужно явно передать правильный флаг/subcommand.
+_BARE_INCOMPATIBLE = {
+    "openssl": ["version", "--version", "-V"],   # OpenSSL 3.x → только `version`
+}
+
+
 def get_version(cmd):
-    for flag in ("--version", "-V", "-version"):
+    """Достать банер-строку версии из произвольной CLI-утилиты.
+    Пробует несколько флагов (некоторые утилиты ходят в stderr, не в stdout;
+    OpenSSL 3.x принимает только bare `version` без тире)."""
+    flags = _BARE_INCOMPATIBLE.get(cmd, ("--version", "-V", "-version"))
+    for flag in flags:
         try:
             r = subprocess.run([cmd, flag], capture_output=True, text=True, timeout=5)
-            if r.returncode == 0 and r.stdout:
-                return r.stdout.splitlines()[0].strip()[:80]
         except (OSError, subprocess.TimeoutExpired):
-            pass
+            continue
+        if r.returncode != 0:
+            continue
+        # Версия может быть и в stdout, и в stderr (ssh -V → stderr).
+        out = (r.stdout or r.stderr or "").strip()
+        if out and not out.lower().startswith("help:") and "usage:" not in out.lower()[:32]:
+            return out.splitlines()[0].strip()[:80]
     return "-"
 
 
