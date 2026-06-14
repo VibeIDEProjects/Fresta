@@ -10,9 +10,19 @@ PY = sys.executable
 
 
 def run(*args, expect_fail=True):
-    # encoding="utf-8" фикс для Windows-консоли (по умолчанию cp1251,
-    # и тест на кириллице в stderr падает с UnicodeDecodeError).
-    r = subprocess.run([PY, SCRIPT, *args], capture_output=True, text=True, encoding="utf-8")
+    # Фикс для Windows-консоли (Python 3.13 в пайпе по умолчанию пишет в
+    # системной кодировке — cp1251/cp866; родительский encoding="utf-8"
+    # тогда падает на кириллице в stderr с UnicodeDecodeError).
+    # Заставляем сабпроцесс использовать UTF-8 для stdio через переменные
+    # окружения; тогда байты в пайпе — валидный UTF-8 и родитель их прочтёт.
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
+    r = subprocess.run(
+        [PY, SCRIPT, *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+    )
     return r
 
 
@@ -43,7 +53,6 @@ out = r"_tmp\rel"
 r = run("--sni", "ads.x5.ru", "--out", out)
 assert r.returncode == 0, f"exit={r.returncode} stderr={r.stderr}"
 # os.path.normpath(r'tmp\rel') = 'tmp\\rel' (относительный); каталог должен быть создан
-import os
 norm = os.path.normpath(out)
 assert os.path.isdir(norm), f"каталог {norm!r} не создался (cwd={os.getcwd()})"
 print(f"OK: relative path normalized -> {norm}")
