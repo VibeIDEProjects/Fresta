@@ -50,8 +50,8 @@ twine upload dist/*                            # залить на PyPI напр
    сам его создаст при первом push'е)
 4. Настроить trusted publishing:
    - https://pypi.org/manage/account/publishing/ → "Add a new pending publisher"
-   - **Owner:** `<owner>` (твой GitHub username/org)
-   - **Repository:** `fresta`
+   - **Owner:** `VibeIDEProjects`
+   - **Repository:** `Fresta`
    - **Workflow filename:** `publish.yml`
    - **Environment name:** `release` (создать в GitHub: Settings → Environments → New → `release`)
 5. (Опционально) Повторить для https://test.pypi.org/manage/account/publishing/
@@ -85,7 +85,7 @@ curl -sI https://pypi.org/project/fresta/ | head -1
 1. **Закройте milestone / issues** — посмотрите `git log v0.1.0..HEAD --oneline`,
    выделите breaking changes, новые фичи, фиксы.
 2. **Обновите `CHANGELOG.md`** — переименуйте `## [Unreleased]` в `## [X.Y.Z] - YYYY-MM-DD`,
-   добавьте ссылку сравнения `[X.Y.Z]: https://github.com/<owner>/fresta/compare/vA.B.C...vX.Y.Z`.
+   добавьте ссылку сравнения `[X.Y.Z]: https://github.com/VibeIDEProjects/Fresta/compare/vA.B.C...vX.Y.Z`.
 3. **Бампните версию в двух местах:**
    - `pyproject.toml:3` — `version = "X.Y.Z"`
    - `fresta/__init__.py:21` — `__version__ = "X.Y.Z"`
@@ -107,7 +107,7 @@ git push origin main --tags                 # push ветки + тегов
 ### Post-release
 
 1. **Проверьте страницу:** `pip install --upgrade fresta && python -c "import fresta; print(fresta.__version__)"`
-2. **GitHub Release:** https://github.com/<owner>/fresta/releases/new → tag = vX.Y.Z →
+2. **GitHub Release:** https://github.com/VibeIDEProjects/Fresta/releases/new → tag = vX.Y.Z →
    description = copy-paste из `CHANGELOG.md` → publish
 3. **Bump до dev-версии** (опц.): `version = "X.Y.Z+dev"` в `pyproject.toml`,
    чтобы было видно, что master сейчас ahead of release.

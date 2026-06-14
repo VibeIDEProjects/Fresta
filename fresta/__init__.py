@@ -15,7 +15,7 @@
 
 # `__version__` синхронизирован с [project.version] в pyproject.toml.
 # Должен быть ОДИН источник правды — сейчас это pyproject.toml,
-# и сюда мы его копируем руками при bump (см. scripts/release-bump.py).
+# и сюда мы его копируем руками при bump (см. PUBLISH.md).
 __version__ = "0.2.0"
 
 # Краткое описание для `python -c "import fresta; help(fresta)"`
