@@ -20,7 +20,7 @@
   server.json: inbounds/outbounds/realitySettings) + `schemas/client.schema.json`
   (sing-box client.json: vless+reality+utls). Формальная валидация формы — type,
   required, enum, pattern (UUID, base64url, regex для SNI), format=uuid/ipv4.
-- **`scripts/validate_config.py`** — stdlib-валидатор (без `jsonschema`).
+- **`scripts/deploy/validate_config.py`** — stdlib-валидатор (без `jsonschema`).
   Авто-детект server↔client по полю `inbounds`/`outbounds`. Опция `--use-jsonschema`
   для полной поддержки (oneOf/allOf/if-then-else), если поставишь пакет.
 - **`.pre-commit-config.yaml`** — ловушка ошибок ДО CI: ruff+format, trailing-WS,
@@ -28,10 +28,10 @@
   `fresta-validate-config` (валидирует server/client.json при коммите).
 - **`.gitattributes`** — нормализация LF/CRLF: `*.sh/*.py/*.md` → LF, `*.bat/*.ps1` → CR+LF.
   Больше никаких `\r` в bash-скриптах, никаких LF-багов в cmd.
-- **`scripts/sanity.py`** — pre-flight check зависимостей: python3, openssl, ssh,
+- **`scripts/check/sanity.py`** — pre-flight check зависимостей: python3, openssl, ssh,
   scp, git, sshpass, curl, nc, jq, xray, sing-box, yc, schemas. Удобно перед первым
   запуском на новом ноуте. `--required-only` / `--json` режимы.
-- **`scripts/diff_configs.py`** — diff двух server/client.json (или каталогов через `--dir`).
+- **`scripts/deploy/diff_configs.py`** — diff двух server/client.json (или каталогов через `--dir`).
   Видно, что изменилось между старым и новым набором после `rotate_keys.sh`. Режимы
   `--summary-only` (только важное: UUID/ключи/shortId/порт) и `--json` (для CI).
   UUID и base64url-ключи маскируются по умолчанию (`--no-redact` отключает).
@@ -40,9 +40,15 @@
 ### Changed
 - **README.md**: заполнены `<owner>` placeholder'ы в badge-URL (→ `fresta/fresta` —
   имя репо при публикации; в шапке README явная подсказка заменить на свой owner).
-  Добавлен callout про badges.
-- **CHANGELOG.md**: `[Unreleased]` и `[0.1.0]` ссылки `https://github.com/<owner>/fresta/…`
-  → `https://github.com/fresta/fresta/…` (placeholder owner).
+  Добавлен callout про badges. В корневой README добавлены `docs/PUBLISH.md`,
+  `schemas/*`, `scripts/deploy/{check_health,bench,rotate_keys,validate_config,diff_configs}`,
+  `scripts/check/sanity.py`, `fresta/`, `pyproject.toml`, `Makefile`, `.github/`,
+  `.vibe/` — теперь карта полная и каждый файл залинкован.
+- **CHANGELOG.md / ROADMAP.md**: исправлены пути `scripts/{sanity,validate_config,diff_configs}.py`
+  → `scripts/{check,deploy}/…` (после реорганизации `scripts/`).
+- **.pre-commit-config.yaml**: исправлен путь хука `fresta-validate-config`
+  `python scripts/validate_config.py` → `python scripts/deploy/validate_config.py`
+  (без этого хук был сломан после переезда файла).
 
 ### Ранее в Unreleased
 - **Реорганизация `scripts/`**: `check_health.py`, `bench.py`, `rotate_keys.sh` перенесены

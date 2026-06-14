@@ -118,24 +118,29 @@
 
 - [x] 💻 **`schemas/server.schema.json`** + **`schemas/client.schema.json`** — JSON Schema
       для Xray server.json и sing-box client.json (закрывает техдолг валидации формы).
-- [x] 💻 **`scripts/validate_config.py`** — stdlib-валидатор по схемам (без зависимости
+- [x] 💻 **`scripts/deploy/validate_config.py`** — stdlib-валидатор по схемам (без зависимости
       на `jsonschema`). Авто-детект server↔client. Опция `--use-jsonschema` для полной
       поддержки (oneOf/allOf/if-then-else).
 - [x] 💻 **`.pre-commit-config.yaml`** — хуки ruff+format, trailing-WS, EOF-newline,
       check-yaml/json/toml, detect-private-key, наш `fresta-validate-config`. Ставится
       `pip install pre-commit && pre-commit install`. Ловит ошибки ДО CI.
+      *(Правка: путь хука `python scripts/validate_config.py` → `python scripts/deploy/validate_config.py`
+      после переезда файла в `scripts/deploy/`.)*
 - [x] 💻 **`.gitattributes`** — нормализация LF/CRLF: `*.sh/*.py/*.md/*.yml/*.json` → LF,
       `*.bat/*.ps1/*.cmd` → CR+LF. Никаких `\r` в bash-скриптах.
-- [x] 💻 **`scripts/sanity.py`** — pre-flight check: python3, openssl, ssh, scp, git,
+- [x] 💻 **`scripts/check/sanity.py`** — pre-flight check: python3, openssl, ssh, scp, git,
       sshpass, curl, nc, jq, xray, sing-box, yc, schemas. Режимы `--required-only` /
       `--json`. Полезно при первом запуске на новой машине.
-- [x] 💻 **`scripts/diff_configs.py`** — diff двух server/client.json (или каталогов
+- [x] 💻 **`scripts/deploy/diff_configs.py`** — diff двух server/client.json (или каталогов
       через `--dir`). После `rotate_keys.sh` — видно, что изменилось (UUID, ключи,
       shortId, порт). Режимы `--summary-only` / `--json`. UUID/base64url маскируются
       по умолчанию (`--no-redact` отключает).
 - [x] 💻 **Makefile**: `make sanity`, `make validate`, `make diff OLD=… NEW=…`.
 - [x] 🛠 README.md: `<owner>` placeholder'ы в badge-URL → `fresta/fresta` (имя репо)
-      + callout с инструкцией «замени на свой owner при публикации».
+      + callout с инструкцией «замени на свой owner при публикации». В корневой README
+      добавлены отсутствовавшие в карте: `docs/PUBLISH.md`, `schemas/`, `fresta/`,
+      `pyproject.toml`, `Makefile`, `.github/`, `.vibe/`, `scripts/check/sanity.py`,
+      `scripts/deploy/{check_health,bench,rotate_keys,validate_config,diff_configs}.{py,sh}`.
 - [x] 🛠 CHANGELOG.md: `<owner>` placeholder'ы в ссылках → `fresta/fresta`.
 
 ### Подготовка к PyPI (этот коммит)
@@ -159,9 +164,11 @@
       при пуше тега `v*.*.*` через **Trusted Publishing (OIDC)**.
       Триггеры: tag push, `workflow_dispatch` (с `to_testpypi` / `dry_run` флагами).
       Fallback на API-токен закомментирован (если OIDC не настроен).
-- [x] 💻 **`PUBLISH.md`** — полный гайд для maintainer'а: проверка имени на PyPI,
+- [x] 💻 **`docs/PUBLISH.md`** — полный гайд для maintainer'а: проверка имени на PyPI,
       настройка trusted publishing, pre-release чек, release workflow (tag → push →
       auto-publish), post-release, ручной аплоад через `twine`, FAQ с частыми проблемами.
+      *(Раньше файл был в корне `docs/`, но в `README.md` (корень) не упоминался —
+      добавлена ссылка из секции «Для контрибьюторов».)*
 
 ### Что дальше (Phase 3, ротация фронтов)
 

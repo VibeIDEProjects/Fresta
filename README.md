@@ -35,27 +35,48 @@ relay / tests). Подробная карта — `scripts/README.md`. Крат�
 
 ```
 fresta/
-├── README.md                   ← этот файл
+├── README.md                   ← этот файл (ты здесь)
+├── pyproject.toml              ← метаданные Python-пакета + entry points
+├── Makefile                    ← make test / lint / deploy / harvest-all / …
+├── LICENSE                     ← MIT
+├── CHANGELOG.md                ← история версий (Keep a Changelog)
+├── CONTRIBUTING.md             ← гайд для контрибьюторов
+├── schemas/                    ← JSON Schema для server.json / client.json
+│   ├── server.schema.json      Xray inbound
+│   └── client.schema.json      sing-box outbound
+├── fresta/                     ← Python-пакет (после `pip install fresta`)
+│   ├── __init__.py             `__version__`, `__summary__`
+│   └── py.typed                маркер PEP 561
 ├── scripts/                    ← код (см. scripts/README.md)
 │   ├── recon/                  Фаза 0: разведка (GO/NO-GO по whitelist-доменам)
 │   ├── harvest/                harvest'ы: zieng2/wl (SNI) + openlibrecommunity/twl (IP)
-│   ├── deploy/                 Метод 1: VLESS+Reality — генер + деплой на VPS
+│   ├── deploy/                 Метод 1: VLESS+Reality — генер + деплой + check_health / bench / rotate
 │   ├── relay/                  Метод 2: Yandex Cloud relay (handler + клиент)
+│   ├── check/                  sanity-чек зависимостей (ssh, openssl, xray, …)
 │   ├── tests/                  smoke-тесты (60+ кейсов) + run_tests.{sh,ps1} + probe_reality.py
 │   └── README.md               ← карта scripts/
-└── docs/                       ← документация
-    ├── README.md               ← карта docs/
-    ├── knowledge.md            ← прочитать первым (контекст-хэндофф)
-    ├── specification.md        идея, threat model, архитектура
-    ├── ROADMAP.md              чек-лист: что гонять где
-    └── manuals/                пошаговые гайды по методу (карта — manuals/README.md)
-        ├── vless-vps/         Метод 1: VLESS+Reality на VPS
-        │   ├── deploy.md      quickstart + troubleshooting
-        │   └── reality-params.md
-        ├── ycloud-function/   Метод 2: YC Functions relay
-        │   └── deploy.md
-        └── recon/             Phase 0: разведка
-            └── twl-harvest.md
+├── docs/                       ← документация
+│   ├── README.md               ← карта docs/
+│   ├── knowledge.md            ← прочитать первым (контекст-хэндофф)
+│   ├── specification.md        идея, threat model, архитектура
+│   ├── ROADMAP.md              чек-лист: что гонять где
+│   ├── PUBLISH.md              гайд для maintainer'а: релиз на PyPI (OIDC, tag → push → auto-publish)
+│   └── manuals/                пошаговые гайды по методу (карта — manuals/README.md)
+│       ├── vless-vps/         Метод 1: VLESS+Reality на VPS
+│       │   ├── deploy.md      quickstart + troubleshooting
+│       │   └── reality-params.md
+│       ├── ycloud-function/   Метод 2: YC Functions relay
+│       │   └── deploy.md
+│       └── recon/             Phase 0: разведка
+│           └── twl-harvest.md
+├── .github/                    ← CI / Issue templates
+│   ├── workflows/
+│   │   ├── tests.yml           smoke-тесты на push/PR
+│   │   └── publish.yml         авто-публикация wheel+sdist на PyPI по тегу v*.*.*
+│   ├── dependabot.yml          авто-PR для dev-зависимостей и Actions
+│   └── ISSUE_TEMPLATE/         bug_report / feature_request
+├── .vibe/                      ← конфиг VibeIDE (rules, skills, prompts, workflows) — см. .vibe/README.md
+└── …                          (`.editorconfig`, `.gitattributes`, `.gitignore`, `.pre-commit-config.yaml`)
 ```
 
 ## Компоненты
@@ -65,6 +86,9 @@ fresta/
 | `docs/specification.md` | Идея, threat model, архитектура, роадмап | — |
 | `docs/ROADMAP.md` | Чек-лист: что сделано и что погонять где | — |
 | `docs/knowledge.md` | Полный контекст-хэндофф проекта (читать первым) | — |
+| `docs/PUBLISH.md` | **Гайд для maintainer'а**: релиз на PyPI (OIDC trusted publishing, tag→push, FAQ) | — |
+| `schemas/server.schema.json` | JSON Schema для Xray `server.json` (inbounds/realitySettings) | — |
+| `schemas/client.schema.json` | JSON Schema для sing-box `client.json` (vless+reality+utls) | — |
 | `scripts/harvest/reports/harvest-report.md` | Снимок SNI/провайдеров из живой подписки zieng2/wl | — |
 | `docs/manuals/vless-vps/deploy.md` | **vless-vps (Метод 1): quickstart + troubleshooting** (сценарии A/B) | 2 |
 | `docs/manuals/vless-vps/reality-params.md` | Reality-параметры + генератор + ручной деплой | 2 |
@@ -80,8 +104,14 @@ fresta/
 | `scripts/deploy/fresta_gen_vless.py` | **Генератор** Xray/sing-box/vless:// для VLESS+Reality | 2 |
 | `scripts/deploy/deploy_vps.sh` | **Серверный деплой** Метода 1: ставит Xray, кладёт конфиг, открывает порт, рестарт | 2 |
 | `scripts/deploy/quickstart.sh` | **Локальный одноступенчатый деплой**: генер → scp → deploy → scp обратно | 2 |
+| `scripts/deploy/check_health.py` | Health-check деплоя: SOCKS5 alive? exit-IP правильный? latency p50/p95 | 2 |
+| `scripts/deploy/bench.py` | Мини-бенчмарк (latency × 10 + 1 МБ throughput) туннеля | 2 |
+| `scripts/deploy/rotate_keys.sh` | Ротация UUID/X25519/shortId на сервере **без переустановки Xray** | 2 |
+| `scripts/deploy/validate_config.py` | Stdlib-валидатор `server.json` / `client.json` по `schemas/*.json` | 2 |
+| `scripts/deploy/diff_configs.py` | Diff двух server/client.json (UUID/ключи маскируются); `--summary-only`, `--json` | 2 |
 | `scripts/deploy/configs/default/` | Пример сгенерированного набора (демо) | 2 |
 | `scripts/deploy/configs/remote-fresta/` | PoC-набор для fresta.ru (end-to-end пройден) | 2 |
+| `scripts/check/sanity.py` | Pre-flight check зависимостей: python, openssl, ssh, scp, xray, sing-box, yc, … | — |
 | `scripts/relay/yc_function/handler.py` | Relay-функция на Yandex Cloud (fetch-on-behalf) | 2 |
 | `scripts/relay/fresta_client.py` | Локальный клиент к relay: CLI + HTTP-proxy | 2 |
 | `scripts/tests/test_*.py` | Smoke-тесты (60+ кейсов), ловят регрессии | — |
@@ -98,6 +128,8 @@ fresta/
 - ⬜ Фаза 2: деплой и прогон на **whitelisted-VPS** под мобильным каналом с белым списком.
 - ⬜ Фаза 3: ротация фронтов (несколько VPS × несколько SNI × автоперебор).
 - ✅ Подключить реальные whitelisted-IP: `scripts/harvest/harvest_twl.py` (43k+ IP из openlibrecommunity/twl).
+- ✅ JSON Schema для конфигов (`schemas/*.schema.json`) + stdlib-валидатор (`validate_config.py`).
+- ✅ Pre-commit хуки (`.pre-commit-config.yaml`): ruff + schema-валидация server/client.json.
 - ⬜ Подключить реальные whitelisted-SNI под своего оператора (выжимка из twl по доменам — в планах).
 
 ## Быстрый старт
@@ -135,6 +167,16 @@ python3 scripts/harvest/harvest_twl.py --providers yandex --min-subnet-density 0
 # Smoke-тесты (60+ кейсов — ловят регрессии в recon/handler/gen_vless/harvest/twl)
 bash scripts/tests/run_tests.sh          # Linux / macOS / WSL / Git Bash
 powershell scripts/tests/run_tests.ps1   # Windows PowerShell
+
+# Pre-flight: проверить, что на машине есть всё нужное (ssh, openssl, xray, …)
+python3 scripts/check/sanity.py
+
+# Валидация server.json / client.json по schemas/*.schema.json
+python3 scripts/deploy/validate_config.py scripts/deploy/configs/default/server.json
+python3 scripts/deploy/validate_config.py scripts/deploy/configs/default/client.json
+
+# Diff двух наборов конфигов (UUID/ключи маскируются)
+python3 scripts/deploy/diff_configs.py OLD/new.json NEW/new.json
 ```
 
 ### Импорт `client.json` в sing-box
@@ -174,12 +216,22 @@ pip install -e .[dev]
 make lint test
 ```
 
+**Установка как пакет:**
+```bash
+pip install fresta    # в $PATH: fresta-recon, fresta-harvest-sni, fresta-harvest-twl,
+                      #          fresta-gen-vless, fresta-validate, fresta-sanity, fresta-diff
+```
+Релиз — по тегу `vX.Y.Z`, авто-publish в PyPI через OIDC trusted publishing
+(см. `docs/PUBLISH.md`).
+
 ## Для контрибьюторов
 
 - Читай [`CONTRIBUTING.md`](CONTRIBUTING.md) — там workflow, правила приёма PR, что НЕ принимаем.
 - История изменений — [`CHANGELOG.md`](CHANGELOG.md).
 - Лицензия — [`LICENSE`](LICENSE) (MIT).
+- Релиз на PyPI (для maintainer'а) — [`docs/PUBLISH.md`](docs/PUBLISH.md) (OIDC, tag→push, FAQ).
 - Issues — шаблоны [bug report](.github/ISSUE_TEMPLATE/bug_report.yml) и [feature request](.github/ISSUE_TEMPLATE/feature_request.yml).
+- IDE-конфиг для AI-агентов (VibeIDE) — [`.vibe/README.md`](.vibe/README.md) (rules, skills, prompts).
 
 ## Рамка
 

@@ -22,13 +22,15 @@ scripts/
 │   └── reports/                снимки harvest'ов (отчёты)
 │       └── harvest-report.md   снимок подписки zieng2/wl (провайдеры, SNI по частоте)
 │
-├── deploy/                     Метод 1 — VLESS+Reality (генер + деплой + эксплуатация)
+├── deploy/                     Метод 1 — VLESS+Reality (генер + деплой + эксплуатация + аудит)
 │   ├── fresta_gen_vless.py     генератор server.json / client.json / vless://
 │   ├── deploy_vps.sh           серверный деплой (ставить Xray, открыть порт, рестарт)
 │   ├── quickstart.sh           локальный одноступенчатый: генер + scp + deploy + scp
 │   ├── check_health.py         health-check деплоя: SOCKS5 alive? exit-IP = IP VPS?
 │   ├── bench.py                мини-бенчмарк (latency + throughput) туннеля
 │   ├── rotate_keys.sh          ротация UUID/X25519/shortId на VPS без переустановки
+│   ├── validate_config.py      stdlib-валидатор server.json / client.json по schemas/*.json
+│   ├── diff_configs.py         diff двух server/client.json (UUID/ключи маскируются)
 │   └── configs/                сгенерированные наборы
 │       ├── default/            демо (CHANGE_ME.IP.LITERAL, плейсхолдеры)
 │       └── remote-fresta/      PoC (89.253.255.108, end-to-end пройден)
@@ -36,6 +38,9 @@ scripts/
 ├── relay/                      Метод 2 — serverless fetch-relay (Yandex Cloud)
 │   ├── fresta_client.py        локальный клиент: CLI + HTTP-proxy
 │   └── yc_function/handler.py  функция relay (deploy на Yandex Cloud)
+│
+├── check/                      pre-flight проверки окружения
+│   └── sanity.py               python3, openssl, ssh, scp, xray, sing-box, yc, … (`--required-only` / `--json`)
 │
 └── tests/                      smoke-тесты (60+ кейсов) + run-скрипты
     ├── README.md               детали по каждому тесту
@@ -58,8 +63,9 @@ scripts/
 |----------|-----------|--------------|
 | `recon/`   | Phase 0: понять, есть ли щель у твоего оператора | `docs/specification.md` §6 |
 | `harvest/` | Сбор живых whitelisted-IP/SNI из открытых источников | `docs/manuals/recon/twl-harvest.md`, `scripts/harvest/reports/harvest-report.md` |
-| `deploy/`  | Phase 2: развернуть VPS-туннель (VLESS+Reality, метод vless-vps) | `docs/manuals/vless-vps/deploy.md`, `docs/manuals/vless-vps/reality-params.md` |
+| `deploy/`  | Phase 2: развернуть VPS-туннель (VLESS+Reality, метод vless-vps) + валидация/diff конфигов | `docs/manuals/vless-vps/deploy.md`, `docs/manuals/vless-vps/reality-params.md`, `schemas/*.json` |
 | `relay/`   | Phase 2 (alt): бесплатный serverless fetch-relay (метод ycloud-function) | `docs/manuals/ycloud-function/deploy.md` |
+| `check/`   | Pre-flight sanity-чек зависимостей (ssh/openssl/xray/…) перед деплоем | `Makefile` (`make sanity`) |
 | `tests/`   | Ловят регрессии в каждом из вышеуказанных модулей | `docs/knowledge.md` §6 |
 
 ## Запуск (быстрый старт)
@@ -67,6 +73,16 @@ scripts/
 Из корня репо:
 
 ```bash
+# Pre-flight: проверить, что на машине есть всё нужное
+python3 scripts/check/sanity.py                    # или: make sanity
+
+# Валидация server.json / client.json по schemas/*.schema.json
+python3 scripts/deploy/validate_config.py scripts/deploy/configs/default/server.json
+python3 scripts/deploy/validate_config.py scripts/deploy/configs/default/client.json
+
+# Diff двух наборов (после rotate_keys — что изменилось)
+python3 scripts/deploy/diff_configs.py OLD/new.json NEW/new.json
+
 # Фаза 0: GO/NO-GO под мобильным каналом с белым списком
 python3 scripts/recon/fresta_recon.py scripts/recon/whitelist.txt
 
@@ -98,6 +114,10 @@ powershell scripts/tests/run_tests.ps1     # Windows PowerShell
 - `scripts/deploy/configs/default/` — демо с плейсхолдерами, **не** для деплоя.
 - `scripts/deploy/configs/remote-fresta/` — реальный PoC, **не** использовать как шаблон
   (там утекли реальные ключи от fresta.ru).
+- `scripts/check/sanity.py` — pre-flight чек **зависимостей** (есть ли в PATH python3/ssh/xray).
+  Не путать с `fresta_recon.py` (Phase 0: есть ли щель у оператора).
+- `scripts/deploy/validate_config.py` (форма конфигов: type/required/UUID/base64url) — **не**
+  заменяет ручную проверку `xray run -test` / `sing-box check` (семантика рантайма).
 
 ## Какие файлы НЕ хранятся в репо
 
@@ -106,3 +126,4 @@ powershell scripts/tests/run_tests.ps1     # Windows PowerShell
 - `harvest/twl-data/{ips,subnets}.txt` — большие (~44k+ строк), в `.gitignore`.
 - `harvest/twl-data/repo/` — клон twl, в `.gitignore`.
 - `harvest/twl-data/{twl-harvest-report.md, meta.json}` — tracked (история harvest'ов).
+- `fresta.egg-info/`, `fresta_cli.egg-info/`, `dist/` — артефакты сборки (`*.egg-info/`, `dist/` в `.gitignore`).

@@ -52,7 +52,7 @@ repos:
       - id: fresta-validate-config
         name: fresta · validate server/client.json
         description: "Проверяет server.json / client.json по schemas/*.schema.json"
-        entry: python scripts/validate_config.py
+        entry: python scripts/deploy/validate_config.py
         language: system
         types: [json]
         # В репо много JSON-файлов (configs/default/, configs/remote-fresta/, harvest/meta.json,

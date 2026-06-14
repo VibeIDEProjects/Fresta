@@ -134,9 +134,9 @@ ignore_errors = true
 
 # --- pytest --------------------------------------------------------------
 # Smoke-тесты лежат в scripts/tests/ и сейчас запускаются через
-# run_tests.sh/ps1. Дополнительно можно запускать через `pytest` —
-# для этого они должны быть собраны в test_*.py (уже так) и
-# импортируемы (для этого добавим conftest.py, см. scripts/tests/conftest.py).
+# run_tests.sh/ps1 (Windows-надёжный путь). Дополнительно можно
+# `pytest scripts/tests` — для этого они названы test_*.py и importable,
+# пути в testpaths уже настроены.
 
 [tool.pytest.ini_options]
 testpaths = ["scripts/tests"]
