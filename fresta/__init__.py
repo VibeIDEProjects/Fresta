@@ -3,7 +3,7 @@
 
 Метапакет: содержит только версию и метаинформацию. Вся функциональность
 лежит в `scripts/` и доступна через CLI-скрипты (см. pyproject.toml
-После `pip install fresta-cli` пользователь
+После `pip install fresta` пользователь
 получает в PATH: `fresta-recon`, `fresta-harvest-sni`, `fresta-gen-vless`,
 `fresta-validate`, `fresta-sanity`, `fresta-diff` и т.д.
 

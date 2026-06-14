@@ -1,4 +1,4 @@
-# fresta-cli · публикация на PyPI
+# fresta · публикация на PyPI
 
 Гайд для maintainer'а. **Один раз настроить → дальше релиз одной командой `git tag vX.Y.Z && git push --tags`.**
 

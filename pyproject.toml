@@ -1,5 +1,5 @@
 [project]
-name = "fresta-cli"
+name = "fresta"
 version = "0.2.0"
 description = "Инструмент доступа к открытому интернету под российскими операторскими белыми списками (мобильные сети)."
 readme = "README.md"
