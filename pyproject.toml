@@ -46,7 +46,6 @@ dev = [
 [project.urls]
 "Repository" = "https://github.com/VibeIDEProjects/Fresta"
 "Issues"     = "https://github.com/VibeIDEProjects/Fresta/issues"
-"Habr article (zarazaex)" = "https://habr.com/ru/articles/1027276/"
 
 # ─── Entry points (CLI-скрипты, попадают в PATH при `pip install fresta`) ───
 # После установки пользователь получает в $PATH:
