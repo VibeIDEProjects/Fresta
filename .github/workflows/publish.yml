@@ -90,15 +90,15 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: dist/
 
-      # ── Fallback: токен (если trusted publishing не настроен) ──
-      # Закомментировано; раскомментируй и добавь secret PYPI_API_TOKEN:
-      #
-      # - name: Publish to PyPI via API token
-      #   if: inputs.to_testpypi != true && inputs.dry_run != true
-      #   env:
-      #     TWINE_USERNAME: __token__
-      #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      #   run: twine upload dist/*
+	      # ── Fallback: API-токен (если trusted publishing не настроен) ──
+	      # Добавь secret PYPI_API_TOKEN в GitHub: Settings → Secrets → Actions.
+	      # Копировать можно из tgparser-cli (там PYPI_TOKEN) — токен один и тот же.
+	      - name: Publish to PyPI via API token
+	        if: inputs.to_testpypi != true && inputs.dry_run != true
+	        env:
+	          TWINE_USERNAME: __token__
+	          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+	        run: twine upload dist/*
 
       - name: Dry-run only
         if: inputs.dry_run == true
