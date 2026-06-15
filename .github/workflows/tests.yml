@@ -67,7 +67,17 @@ jobs:
         run: pip install ruff>=0.5
 
       - name: ruff check
-        run: ruff check .
+        run: ruff check . --output-format=concise 2>&1 | tee ruff_check.log; rc=${PIPESTATUS[0]}; [ $rc -eq 0 ] || exit $rc
 
       - name: ruff format --check
-        run: ruff format --check .
+        run: ruff format --check . 2>&1 | tee ruff_format.log; rc=${PIPESTATUS[0]}; [ $rc -eq 0 ] || exit $rc
+
+      # При failure приложить ruff-логи, чтобы можно было прочитать в nightly.link
+      - name: Upload ruff logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruff-logs
+          path: ruff_check.log ruff_format.log
+          if-no-files-found: ignore
+          retention-days: 7
