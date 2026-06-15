@@ -8,11 +8,20 @@ set -euo pipefail
 # Уже в scripts/tests/ — тесты лежат рядом, дополнительный cd не нужен.
 cd "$(dirname "$0")"
 
+# Диагностика окружения (полезно при фейле в CI).
+echo "--- env ---"
+python3 --version || echo "python3 not found"
+which python3 || true
+echo "PWD: $(pwd)"
+echo "--- env end ---"
+echo
+
 fail=0
 for t in test_*.py; do
     echo "=== $t ==="
-    if ! python3 "$t"; then
-        echo "FAIL: $t"
+    # -u = unbuffered: строки выводятся сразу, в логе CI видно место фейла.
+    if ! python3 -u "$t"; then
+        echo "FAIL: $t  (exit=$?)"
         fail=$((fail+1))
     fi
 done
