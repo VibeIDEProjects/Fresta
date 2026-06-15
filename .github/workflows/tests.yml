@@ -64,7 +64,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install ruff
-        run: pip install ruff>=0.5
+        # Зафиксирована версия — локально (Windows + Ubuntu) ruff 0.15.16
+        # проходит ruff check . / ruff format --check . 'без ошибок'.
+        # Раньше было >=0.5, что приводило к сюрпризам при upgrade ruff.
+        run: pip install ruff==0.15.16
 
       - name: ruff check
         run: |
