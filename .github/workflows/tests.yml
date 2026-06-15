@@ -41,6 +41,18 @@ jobs:
         shell: pwsh
         run: ./scripts/tests/run_tests.ps1
 
+      # При failure приложить _fail_*.log (run_tests.sh/ps1 пишет stdout+stderr
+      # каждого упавшего теста в такой файл) — можно скачать в GitHub UI
+      # run'а и увидеть, что именно упало.
+      - name: Upload smoke test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs-${{ runner.os }}-py${{ matrix.python }}
+          path: scripts/tests/_fail_*.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   lint:
     name: ruff
     runs-on: ubuntu-latest
