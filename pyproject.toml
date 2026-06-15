@@ -84,11 +84,22 @@ packages = ["fresta", "scripts", "scripts.check", "scripts.recon", "scripts.harv
 # --- ruff (быстрый линтер, замена flake8+isort+pyupgrade) ----------------
 [tool.ruff]
 line-length = 100
-target-version = "py38"
+# Не указываем target-version — ruff сам возьмёт max(requires-python) = py38,
+# но в новых ruff 0.15+ явный target-version = "py38" иногда конфликтует
+# с правилами UP / B для современных Python-функций (например, на Windows +
+# 3.12 runner). Оставляем auto-detect.
+target-version = "py38"   # явное, для ясности (см. requires-python = ">=3.8" выше)
 extend-exclude = [
     "scripts/deploy/configs/**",     # сгенерированные (Xray/sing-box)
     "scripts/harvest/twl-data/**",   # скачанный клон + большие файлы
     ".vibe/**",
+    "scripts/bin/**",                # dev-хелперы (bump_version, check_pep585) — отдельный мир
+    "scripts/tests/**",              # smoke-тесты — лояльный линт (per-file-ignores ниже)
+    ".ruff_cache",
+    "__pycache__",
+    "*.egg-info",
+    "dist",
+    "build",
 ]
 
 [tool.ruff.lint]
