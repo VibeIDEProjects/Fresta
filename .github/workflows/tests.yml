@@ -64,15 +64,12 @@ jobs:
           python-version: "3.12"
 
       - name: Install ruff
-        # Зафиксирована версия. 0.15.16 имел регрессию (ruff check
-        # падал в CI), 0.15.17 починила. Локально (Windows + Ubuntu)
-        # ruff 0.15.17 проходит ruff check . / ruff format --check .
-        # без ошибок.
-        run: pip install ruff==0.15.17
+        # Latest ruff (>=0.5). Локально (Windows + Ubuntu) ruff 0.15.17
+        # проходит ruff check . / ruff format --check . без ошибок.
+        run: pip install --upgrade ruff
 
       - name: ruff check
-        # --no-cache на всякий случай (CI runner имеет свой .ruff_cache).
-        run: ruff check . --no-cache
+        run: ruff check .
 
       - name: ruff format --check
-        run: ruff format --check . --no-cache
+        run: ruff format --check .
