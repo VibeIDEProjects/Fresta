@@ -64,34 +64,14 @@ jobs:
           python-version: "3.12"
 
       - name: Install ruff
-        # Зафиксирована версия — локально (Windows + Ubuntu) ruff 0.15.16
-        # проходит ruff check . / ruff format --check . 'без ошибок'.
-        # Раньше было >=0.5, что приводило к сюрпризам при upgrade ruff.
-        run: pip install ruff==0.15.16
+        # Зафиксирована версия. 0.15.16 имел регрессию (ruff check
+        # падал в CI), 0.15.17 починила. Локально (Windows + Ubuntu)
+        # ruff 0.15.17 проходит ruff check . / ruff format --check .
+        # без ошибок.
+        run: pip install ruff==0.15.17
 
       - name: ruff check
-        run: |
-          set +e
-          ruff check . --output-format=concise 2>&1 | tee ruff_check.log
-          rc=${PIPESTATUS[0]}
-          echo "ruff check exit=$rc"
-          exit $rc
+        run: ruff check .
 
       - name: ruff format --check
-        run: |
-          set +e
-          ruff format --check . 2>&1 | tee ruff_format.log
-          rc=${PIPESTATUS[0]}
-          echo "ruff format --check exit=$rc"
-          exit $rc
-
-      # always() — потому что GitHub Actions по дефолту пропускает steps после
-      # failure, и без always() upload не запустится.
-      - name: Upload ruff logs (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ruff-logs
-          path: ruff_check.log ruff_format.log
-          if-no-files-found: ignore
-          retention-days: 7
+        run: ruff format --check .
