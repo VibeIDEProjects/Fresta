@@ -108,12 +108,26 @@ ignore = [
     "E501",   # line too long (мы трактуем комментарии-баннеры отдельно)
     "B008",   # function call in default argument (часто ОК для argparse)
     "N806",   # variable in caps (XRAY_SING_BOX_NAMES etc.)
+    # Ниже — особенности нашего русскоязычного проекта / библиотечного контракта.
+    # ruff по дефолту считает кириллицу «ambiguous» (визуально совпадает с латиницей),
+    # но в нашем проекте русский текст — фича, а не баг. allowed-confusables
+    # покрывает только типографику (—«»…), а не буквы.
+    "RUF001", # string contains ambiguous cyrillic character
+    "RUF002", # docstring contains ambiguous cyrillic character
+    "RUF003", # comment contains ambiguous cyrillic character
+    "N815",   # mixedCase in class scope — do_GET/do_POST от BaseHTTPRequestHandler
 ]
 # Разрешаем русские docstring / строки.
 allowed-confusables = ["«", "»", "—", "–", "…"]
 
 [tool.ruff.lint.per-file-ignores]
-"scripts/tests/*" = ["E402"]   # импорты после sys.path manipulation в smoke-тестах
+# В smoke-тестах менее строгие правила: short-lived процессы, OS закроет fds.
+"scripts/tests/*" = [
+    "E402",   # импорты после sys.path manipulation
+    "SIM105", # try/except: pass — допустимо в тестах
+    "SIM115", # open() без with — тесты короткоживущие
+    "SIM117", # nested with — допустимо в тестах
+]
 
 [tool.ruff.format]
 quote-style = "double"

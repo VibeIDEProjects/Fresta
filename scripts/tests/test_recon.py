@@ -1,9 +1,12 @@
 """smoke-тесты fresta_recon.py — multi-ASN классификация и базовые случаи."""
+
 import importlib.util
 import os
 
 # Тест лежит в scripts/tests/, а сам скрипт — в scripts/recon/.
-_RECON_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "recon", "fresta_recon.py"))
+_RECON_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "recon", "fresta_recon.py")
+)
 spec = importlib.util.spec_from_file_location("r", _RECON_PATH)
 r = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r)
@@ -16,8 +19,13 @@ print(f"OK: single ASN Yandex -> {cdn}/{dep}")
 
 
 # 2. Два ASN: YANDEX (origin) + TELETECH (announcing) — origin должен выиграть
-cdn, dep, det = r.classify("5.255.255.77", [("13238", "YANDEX - YANDEX LLC, RU"),
-                                            ("208398", "TELETECH - Edge Technology Plus d.o.o. Beograd, RS")])
+cdn, dep, det = r.classify(
+    "5.255.255.77",
+    [
+        ("13238", "YANDEX - YANDEX LLC, RU"),
+        ("208398", "TELETECH - Edge Technology Plus d.o.o. Beograd, RS"),
+    ],
+)
 assert cdn == "Yandex Cloud" and dep == "yes", cdn
 assert "TELETECH" in det, f"detail должен упомянуть TELETECH: {det}"
 print(f"OK: multi-ASN (YANDEX + TELETECH) -> {cdn}, detail: {det}")
@@ -26,8 +34,10 @@ print(f"OK: multi-ASN (YANDEX + TELETECH) -> {cdn}, detail: {det}")
 # 3. Два ASN в обратном порядке: TELETECH первый в списке (как отдаёт Cymru
 #    bulk: AS13238 идёт раньше AS208398, но проверим, что порядок не важен —
 #    YANDEX всё равно выигрывает по приоритету CDN_SIGNATURES).
-cdn, dep, det = r.classify("5.255.255.77", [("208398", "TELETECH - Edge Technology Plus"),
-                                            ("13238", "YANDEX - YANDEX LLC, RU")])
+cdn, dep, det = r.classify(
+    "5.255.255.77",
+    [("208398", "TELETECH - Edge Technology Plus"), ("13238", "YANDEX - YANDEX LLC, RU")],
+)
 assert cdn == "Yandex Cloud", f"порядок ASN не должен ломать приоритет: {cdn}"
 print(f"OK: порядок ASN неважен, Yandex всё равно приоритетный -> {cdn}")
 
@@ -57,8 +67,9 @@ print(f"OK: CF-диапазон -> {cdn}/{dep} (offline signal beats ASN)")
 
 
 # 8. Несколько ASN в детали указываются для отладки
-cdn, dep, det = r.classify("8.8.8.8", [("15169", "GOOGLE - Google LLC, US"),
-                                        ("36040", "YOUTUBE - Google LLC, US")])
+cdn, dep, det = r.classify(
+    "8.8.8.8", [("15169", "GOOGLE - Google LLC, US"), ("36040", "YOUTUBE - Google LLC, US")]
+)
 assert dep == "?" and "AS36040" in det, det
 print(f"OK: multi-ASN для '?' -> detail содержит 'ещё AS: AS36040': {det}")
 
@@ -67,8 +78,10 @@ print(f"OK: multi-ASN для '?' -> detail содержит 'ещё AS: AS36040'
 per_domain, per_cdn = r.build(
     {"yandex.ru": ["5.255.255.77"], "google.com": ["8.8.8.8"]},
     {
-        "5.255.255.77": [("13238", "YANDEX - YANDEX LLC, RU"),
-                         ("208398", "TELETECH - Edge Technology Plus")],
+        "5.255.255.77": [
+            ("13238", "YANDEX - YANDEX LLC, RU"),
+            ("208398", "TELETECH - Edge Technology Plus"),
+        ],
         "8.8.8.8": [("15169", "GOOGLE - Google LLC, US")],
     },
 )

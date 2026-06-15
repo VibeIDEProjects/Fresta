@@ -1,10 +1,10 @@
 """smoke-тесты harvest_twl.py — все ветки парсинга/фильтрации/генерации."""
+
 import importlib.util
 import json
 import os
 import shutil
 import sys
-import tempfile
 
 # Фикс для Windows-консоли: по умолчанию stdout/stderr в cp1251/cp866, и
 # `print("→")` / `print("─")` падают с UnicodeEncodeError. Переключаем
@@ -31,15 +31,15 @@ os.makedirs(TMP, exist_ok=True)
 
 # ─── 1. looks_like_ip ───────────────────────────────────────────────────────
 ip_cases = [
-    ("1.2.3.4",         True),
+    ("1.2.3.4", True),
     ("255.255.255.255", True),
-    ("0.0.0.0",         True),
-    ("",                False),
-    ("1.2.3",           False),
-    ("1.2.3.4.5",       False),
-    ("1.2.3.256",       False),
+    ("0.0.0.0", True),
+    ("", False),
+    ("1.2.3", False),
+    ("1.2.3.4.5", False),
+    ("1.2.3.256", False),
     ("abc.def.ghi.jkl", False),
-    (" 1.2.3.4 ",       True),  # strip'нется внутри
+    (" 1.2.3.4 ", True),  # strip'нется внутри
 ]
 for raw, expected in ip_cases:
     got = htwl.looks_like_ip(raw)
@@ -49,14 +49,14 @@ print(f"OK: looks_like_ip ({len(ip_cases)} cases)")
 
 # ─── 2. provider_tag / short_name ───────────────────────────────────────────
 tag_cases = [
-    ("Yandex.Cloud LLC",           "Yandex Cloud"),
-    ("Selectel Ltd.",              "Selectel"),
-    ("TIMEWEB Cloud",              "Timeweb"),
-    ("Beget LLC",                  "Beget"),
-    ("VK LLC",                     "VK"),
-    ("Cloudflare Inc.",            "Cloudflare"),
-    ("",                           None),
-    ("Random Provider XYZ",        None),
+    ("Yandex.Cloud LLC", "Yandex Cloud"),
+    ("Selectel Ltd.", "Selectel"),
+    ("TIMEWEB Cloud", "Timeweb"),
+    ("Beget LLC", "Beget"),
+    ("VK LLC", "VK"),
+    ("Cloudflare Inc.", "Cloudflare"),
+    ("", None),
+    ("Random Provider XYZ", None),
 ]
 for name, expected in tag_cases:
     got = htwl.provider_tag(name)
@@ -87,21 +87,21 @@ print("OK: match_asn (4 cases)")
 mock_sorted = [
     {
         "name": "Yandex.Cloud LLC",
-        "asn":  200350,
-        "count": 5,                          # в реальном twl count == len(ips)
-        "ips":  ["130.193.35.68", "130.193.39.184", "130.193.42.148", "not-an-ip", "1.2.3.999"],
+        "asn": 200350,
+        "count": 5,  # в реальном twl count == len(ips)
+        "ips": ["130.193.35.68", "130.193.39.184", "130.193.42.148", "not-an-ip", "1.2.3.999"],
     },
     {
         "name": "Selectel Ltd.",
-        "asn":  49505,
-        "count": 3,                          # 3 валидных IP
-        "ips":  ["95.213.45.1", "95.213.45.2", "95.213.45.3"],
+        "asn": 49505,
+        "count": 3,  # 3 валидных IP
+        "ips": ["95.213.45.1", "95.213.45.2", "95.213.45.3"],
     },
     {
         "name": "Beget LLC",
-        "asn":  198610,
-        "count": 4,                          # 4 валидных IP
-        "ips":  ["5.181.1.1", "5.181.1.2", "5.181.1.3", "5.181.1.4"],
+        "asn": 198610,
+        "count": 4,  # 4 валидных IP
+        "ips": ["5.181.1.1", "5.181.1.2", "5.181.1.3", "5.181.1.4"],
     },
 ]
 mock_sorted_path = os.path.join(TMP, "sorted.json")
@@ -116,23 +116,29 @@ assert "not-an-ip" not in groups[0]["ips"]
 assert "1.2.3.999" not in groups[0]["ips"]
 assert groups[1]["ips"] == ["95.213.45.1", "95.213.45.2", "95.213.45.3"]
 assert groups[2]["count"] == 4
-print(f"OK: parse_sorted (3 groups, фильтрация невалидных IP)")
+print("OK: parse_sorted (3 groups, фильтрация невалидных IP)")
 
 mock_subnets = [
     {
         "cidr": "95.213.45.0/24",
-        "count": 213, "total": 256, "percent": 83.2,
-        "ips":  ["95.213.45.1", "95.213.45.2"],
+        "count": 213,
+        "total": 256,
+        "percent": 83.2,
+        "ips": ["95.213.45.1", "95.213.45.2"],
     },
     {
         "cidr": "5.181.1.0/24",
-        "count": 4, "total": 256, "percent": 1.56,
-        "ips":  ["5.181.1.1", "5.181.1.2"],
+        "count": 4,
+        "total": 256,
+        "percent": 1.56,
+        "ips": ["5.181.1.1", "5.181.1.2"],
     },
     {
         "cidr": "1.2.3.0/24",
-        "count": 200, "total": 256, "percent": 78.1,
-        "ips":  ["1.2.3.1", "1.2.3.2"],
+        "count": 200,
+        "total": 256,
+        "percent": 78.1,
+        "ips": ["1.2.3.1", "1.2.3.2"],
     },
 ]
 mock_subnets_path = os.path.join(TMP, "subnets.json")
@@ -141,13 +147,17 @@ with open(mock_subnets_path, "w", encoding="utf-8") as f:
 subnets = htwl.parse_subnets(mock_subnets_path)
 assert len(subnets) == 3
 assert subnets[0]["cidr"] == "95.213.45.0/24"
-print(f"OK: parse_subnets (3 /24)")
+print("OK: parse_subnets (3 /24)")
 
 
 # ─── 5. write_ips_txt / write_subnets_txt / write_report_md ─────────────────
 ips_out = os.path.join(TMP, "ips.txt")
 n_ips, n_asn = htwl.write_ips_txt(
-    groups, providers=[], asns=[], min_count=1, out_path=ips_out,
+    groups,
+    providers=[],
+    asns=[],
+    min_count=1,
+    out_path=ips_out,
 )
 assert n_ips == 3 + 3 + 4, f"n_ips={n_ips}"  # все 10 IP
 assert n_asn == 3
@@ -161,17 +171,25 @@ print(f"OK: write_ips_txt ({n_ips} IP, {n_asn} ASN)")
 
 # min_count=5 → Yandex (3) и Selectel (3) выпадут, Beget (4) останется
 n_ips2, n_asn2 = htwl.write_ips_txt(
-    groups, providers=[], asns=[], min_count=5, out_path=ips_out,
+    groups,
+    providers=[],
+    asns=[],
+    min_count=5,
+    out_path=ips_out,
 )
 assert n_asn2 == 0, f"должно быть 0 ASN при min_count=5, got {n_asn2}"
 # Файл всё равно переписан (только заголовки, без IP)
 text2 = open(ips_out, encoding="utf-8").read()
 assert "групп (ASN): 0" in text2
-print(f"OK: write_ips_txt (min_count=5 фильтрует)")
+print("OK: write_ips_txt (min_count=5 фильтрует)")
 
 # providers=['yandex'] → только Yandex
 n_ips3, n_asn3 = htwl.write_ips_txt(
-    groups, providers=["yandex"], asns=[], min_count=1, out_path=ips_out,
+    groups,
+    providers=["yandex"],
+    asns=[],
+    min_count=1,
+    out_path=ips_out,
 )
 assert n_asn3 == 1
 assert n_ips3 == 3
@@ -179,15 +197,19 @@ text3 = open(ips_out, encoding="utf-8").read()
 assert "Yandex" in text3
 assert "Selectel" not in text3
 assert "Beget" not in text3
-print(f"OK: write_ips_txt (providers=['yandex'])")
+print("OK: write_ips_txt (providers=['yandex'])")
 
 # asns=[49505] → только Selectel
 n_ips4, n_asn4 = htwl.write_ips_txt(
-    groups, providers=[], asns=[49505], min_count=1, out_path=ips_out,
+    groups,
+    providers=[],
+    asns=[49505],
+    min_count=1,
+    out_path=ips_out,
 )
 assert n_asn4 == 1
 assert "Selectel" in open(ips_out, encoding="utf-8").read()
-print(f"OK: write_ips_txt (asns=[49505])")
+print("OK: write_ips_txt (asns=[49505])")
 
 # subnets: min_density=0.5 → 95.213.45.0/24 (83%) и 1.2.3.0/24 (78%) пройдут
 subnets_out = os.path.join(TMP, "subnets.txt")
@@ -205,18 +227,27 @@ print("OK: write_subnets_txt (min_density=0.9 → 0)")
 
 # report.md
 meta = {
-    "ok": True, "source_repo": "https://example.com", "branch": "main",
+    "ok": True,
+    "source_repo": "https://example.com",
+    "branch": "main",
     "commit_sha": "abc123def",
     "generated_at": "2026-06-14T17:00:00+00:00",
     "filters": {"providers": [], "asns": [], "min_count": 1, "min_subnet_density": 0.5},
     "files": {"sorted": True, "subnets": True, "verified": True},
-    "asn_count": 3, "ip_count": 10, "subnet_count": 2,
+    "asn_count": 3,
+    "ip_count": 10,
+    "subnet_count": 2,
     "top_asn": [
         {"name": "Yandex.Cloud LLC", "asn": 200350, "ip_count": 3, "tag": "Yandex Cloud"},
-        {"name": "Selectel Ltd.",   "asn": 49505,  "ip_count": 3, "tag": "Selectel"},
-        {"name": "Beget LLC",       "asn": 198610, "ip_count": 4, "tag": "Beget"},
+        {"name": "Selectel Ltd.", "asn": 49505, "ip_count": 3, "tag": "Selectel"},
+        {"name": "Beget LLC", "asn": 198610, "ip_count": 4, "tag": "Beget"},
     ],
-    "outputs": {"ips": "ips.txt", "subnets": "subnets.txt", "report": "report.md", "meta": "meta.json"},
+    "outputs": {
+        "ips": "ips.txt",
+        "subnets": "subnets.txt",
+        "report": "report.md",
+        "meta": "meta.json",
+    },
 }
 report_path = os.path.join(TMP, "report.md")
 htwl.write_report_md(meta, report_path)
@@ -239,9 +270,9 @@ print("OK: write_meta (round-trip)")
 # ─── 6. build_provider_summary ─────────────────────────────────────────────
 summary = htwl.build_provider_summary(groups, providers=[], asns=[], min_count=1)
 assert summary["asn_count"] == 3
-assert summary["ip_count"]  == 3 + 3 + 4
+assert summary["ip_count"] == 3 + 3 + 4
 assert summary["top_asn"][0]["ip_count"] == 4  # Beget лидирует
-print(f"OK: build_provider_summary (top-1 = Beget)")
+print("OK: build_provider_summary (top-1 = Beget)")
 
 # фильтр по yandex
 summary2 = htwl.build_provider_summary(groups, providers=["yandex"], asns=[], min_count=1)

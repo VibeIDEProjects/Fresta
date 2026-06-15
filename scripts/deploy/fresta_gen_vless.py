@@ -64,7 +64,7 @@ DEFAULT_PORT = 443
 DEFAULT_DEST = "www.google.com:443"
 DEFAULT_NAME = "fresta-reality"
 DEFAULT_FP = "chrome"
-DEFAULT_SHORT_ID_LEN = 4   # байта; Reality принимает 0..16
+DEFAULT_SHORT_ID_LEN = 4  # байта; Reality принимает 0..16
 
 # placeholders в server.json — заметные, чтобы не задеплоить по забывчивости
 PH_UUID = "UUID_REPLACE_ME"
@@ -74,6 +74,7 @@ PH_IP = "CHANGE_ME.IP.LITERAL"
 
 
 # --- утилиты -----------------------------------------------------------------
+
 
 def b64url(raw: bytes) -> str:
     """base64url без padding — формат, который ждут Xray/sing-box для ключей."""
@@ -100,6 +101,7 @@ def read_sni_file(path: str) -> list[str]:
 
 # --- генерация X25519 через openssl -----------------------------------------
 
+
 def gen_x25519_openssl() -> tuple[str, str]:
     """(private_b64url, public_b64url) для X25519.
     OpenSSL CLI: genpkey → приватка PEM → DER (raw 32 байта в хвосте) →
@@ -111,7 +113,8 @@ def gen_x25519_openssl() -> tuple[str, str]:
         priv_pem = os.path.join(tmp, "priv.pem")
         r = subprocess.run(
             [openssl, "genpkey", "-algorithm", "X25519", "-out", priv_pem],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if r.returncode != 0:
             raise RuntimeError(f"openssl genpkey: {r.stderr.strip()}")
@@ -136,33 +139,37 @@ def gen_x25519_openssl() -> tuple[str, str]:
 
 # --- сборщики конфигов -------------------------------------------------------
 
-def build_server_json(snis: list[str], listen_ip: str, port: int,
-                      dest: str, private_key: str, short_id_hex: str) -> dict:
+
+def build_server_json(
+    snis: list[str], listen_ip: str, port: int, dest: str, private_key: str, short_id_hex: str
+) -> dict:
     """Xray-core inbound: VLESS + Reality + TCP. Один клиент (UUID) — на одного тебя.
     show=false — Reality-ответы неотличимы от легит-сайта (см. knowledge.md, раздел 5)."""
     return {
         "log": {"loglevel": "warning"},
-        "inbounds": [{
-            "listen": listen_ip,
-            "port": port,
-            "protocol": "vless",
-            "settings": {
-                "clients": [{"id": PH_UUID, "flow": ""}],
-                "decryption": "none",
-            },
-            "streamSettings": {
-                "network": "tcp",
-                "security": "reality",
-                "realitySettings": {
-                    "show": False,
-                    "dest": dest,                # куда Reality проксирует «чужих»
-                    "xver": 0,
-                    "serverNames": snis,         # whitelisted-SNI, которые мы маскируем
-                    "privateKey": private_key,   # 32 байта X25519, base64url без =
-                    "shortIds": [short_id_hex, ""],  # пустой shortId тоже пускаем
+        "inbounds": [
+            {
+                "listen": listen_ip,
+                "port": port,
+                "protocol": "vless",
+                "settings": {
+                    "clients": [{"id": PH_UUID, "flow": ""}],
+                    "decryption": "none",
                 },
-            },
-        }],
+                "streamSettings": {
+                    "network": "tcp",
+                    "security": "reality",
+                    "realitySettings": {
+                        "show": False,
+                        "dest": dest,  # куда Reality проксирует «чужих»
+                        "xver": 0,
+                        "serverNames": snis,  # whitelisted-SNI, которые мы маскируем
+                        "privateKey": private_key,  # 32 байта X25519, base64url без =
+                        "shortIds": [short_id_hex, ""],  # пустой shortId тоже пускаем
+                    },
+                },
+            }
+        ],
         "outbounds": [
             {"protocol": "freedom", "tag": "direct"},
             {"protocol": "blackhole", "tag": "block"},
@@ -170,34 +177,42 @@ def build_server_json(snis: list[str], listen_ip: str, port: int,
     }
 
 
-def build_client_json(server_ip: str, port: int, sni: str,
-                      uuid_str: str, public_key: str, short_id_hex: str,
-                      fingerprint: str) -> dict:
+def build_client_json(
+    server_ip: str,
+    port: int,
+    sni: str,
+    uuid_str: str,
+    public_key: str,
+    short_id_hex: str,
+    fingerprint: str,
+) -> dict:
     """sing-box outbound: VLESS+Reality+TCP+utls. Один SNI на конфиг —
     для ротации делай --out несколько раз с разными --sni или меняй server_name."""
     return {
-        "outbounds": [{
-            "type": "vless",
-            "tag": "fresta-reality",
-            "server": server_ip,
-            "server_port": port,
-            "uuid": uuid_str,
-            "flow": "",
-            "network": "tcp",
-            "tls": {
-                "enabled": True,
-                "server_name": sni,
-                "utls": {
+        "outbounds": [
+            {
+                "type": "vless",
+                "tag": "fresta-reality",
+                "server": server_ip,
+                "server_port": port,
+                "uuid": uuid_str,
+                "flow": "",
+                "network": "tcp",
+                "tls": {
                     "enabled": True,
-                    "fingerprint": fingerprint,   # chrome/firefox/safari/edge/qq/random
+                    "server_name": sni,
+                    "utls": {
+                        "enabled": True,
+                        "fingerprint": fingerprint,  # chrome/firefox/safari/edge/qq/random
+                    },
+                    "reality": {
+                        "enabled": True,
+                        "public_key": public_key,
+                        "short_id": short_id_hex,
+                    },
                 },
-                "reality": {
-                    "enabled": True,
-                    "public_key": public_key,
-                    "short_id": short_id_hex,
-                },
-            },
-        }],
+            }
+        ],
         "route": {
             # дефолт: всё через наш туннель
             "final": "fresta-reality",
@@ -205,9 +220,16 @@ def build_client_json(server_ip: str, port: int, sni: str,
     }
 
 
-def build_vless_link(server_ip: str, port: int, sni: str,
-                     uuid_str: str, public_key: str, short_id_hex: str,
-                     fingerprint: str, name: str) -> str:
+def build_vless_link(
+    server_ip: str,
+    port: int,
+    sni: str,
+    uuid_str: str,
+    public_key: str,
+    short_id_hex: str,
+    fingerprint: str,
+    name: str,
+) -> str:
     """vless:// URI — формат, который жуют Shadowrocket/v2rayNG/NekoBox/Throne.
     encryption=none обязательно (VLESS), flow пустой (Reality), security=reality."""
     qs = (
@@ -335,19 +357,35 @@ whitelisted-IP (Timeweb / Selectel / Beget / Yandex Cloud). Защита от
 """
 
 
-def render_readme(name: str, exit_ip: str, exit_port: int, uuid_str: str,
-                  sid: str, fp: str, snis: list[str], dest: str) -> str:
+def render_readme(
+    name: str,
+    exit_ip: str,
+    exit_port: int,
+    uuid_str: str,
+    sid: str,
+    fp: str,
+    snis: list[str],
+    dest: str,
+) -> str:
     if len(snis) <= 6:
         sni_str = ", ".join(f"`{s}`" for s in snis)
     else:
         sni_str = ", ".join(f"`{s}`" for s in snis[:6]) + f", … (+{len(snis) - 6})"
     return README_TMPL.format(
-        name=name, exit_ip=exit_ip, exit_port=exit_port, uuid=uuid_str,
-        sid=sid, fp=fp, sni=sni_str, n=len(snis), dest=dest,
+        name=name,
+        exit_ip=exit_ip,
+        exit_port=exit_port,
+        uuid=uuid_str,
+        sid=sid,
+        fp=fp,
+        sni=sni_str,
+        n=len(snis),
+        dest=dest,
     )
 
 
 # --- запись ------------------------------------------------------------------
+
 
 def write_text(path: str, body: str) -> None:
     with open(path, "w", encoding="utf-8") as fh:
@@ -362,6 +400,7 @@ def write_json(path: str, obj: dict) -> None:
 
 # --- entrypoint --------------------------------------------------------------
 
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="fresta · генератор VLESS+Reality конфигов под whitelist",
@@ -373,35 +412,57 @@ def main() -> None:
               %(prog)s --exit-ip 5.181.1.1 --out configs/beget-2024-12
         """),
     )
-    ap.add_argument("--sni", action="append",
-                    help="whitelisted-SNI (можно несколько). По умолчанию — из "
-                         f"{os.path.relpath(DEFAULT_SNI_FILE)}")
-    ap.add_argument("--sni-file", default=DEFAULT_SNI_FILE,
-                    help="файл со списком SNI (по одному в строке)")
-    ap.add_argument("--exit-ip", default=PH_IP,
-                    help="IP-литерал VPS (НЕ домен — внешний DNS у оператора закрыт)")
-    ap.add_argument("--exit-port", type=int, default=DEFAULT_PORT,
-                    help=f"порт inbound на VPS (default {DEFAULT_PORT})")
-    ap.add_argument("--listen-ip", default="0.0.0.0",
-                    help="адрес, на котором слушает Xray на VPS (default 0.0.0.0)")
-    ap.add_argument("--dest", default=DEFAULT_DEST,
-                    help=f"dest для Reality — куда проксировать «чужих» "
-                         f"(default {DEFAULT_DEST})")
-    ap.add_argument("--name", default=DEFAULT_NAME,
-                    help="имя профиля в клиенте (default fresta-reality)")
-    ap.add_argument("--fp", default=DEFAULT_FP,
-                    help=f"uTLS fingerprint (default {DEFAULT_FP}). "
-                         "chrome/firefox/safari/edge/qq/random")
-    ap.add_argument("--short-id", default=None,
-                    help="shortId hex (default — сгенерируем сами)")
-    ap.add_argument("--uuid", default=None,
-                    help="UUID клиента (default — сгенерируем v4)")
-    ap.add_argument("--private-key", default=None,
-                    help="X25519 private key (base64url). По умолчанию — openssl")
-    ap.add_argument("--public-key", default=None,
-                    help="X25519 public key (base64url). По умолчанию — openssl")
-    ap.add_argument("--out", default=DEFAULT_OUT,
-                    help=f"каталог для конфигов (default {os.path.relpath(DEFAULT_OUT)})")
+    ap.add_argument(
+        "--sni",
+        action="append",
+        help="whitelisted-SNI (можно несколько). По умолчанию — из "
+        f"{os.path.relpath(DEFAULT_SNI_FILE)}",
+    )
+    ap.add_argument(
+        "--sni-file", default=DEFAULT_SNI_FILE, help="файл со списком SNI (по одному в строке)"
+    )
+    ap.add_argument(
+        "--exit-ip",
+        default=PH_IP,
+        help="IP-литерал VPS (НЕ домен — внешний DNS у оператора закрыт)",
+    )
+    ap.add_argument(
+        "--exit-port",
+        type=int,
+        default=DEFAULT_PORT,
+        help=f"порт inbound на VPS (default {DEFAULT_PORT})",
+    )
+    ap.add_argument(
+        "--listen-ip",
+        default="0.0.0.0",
+        help="адрес, на котором слушает Xray на VPS (default 0.0.0.0)",
+    )
+    ap.add_argument(
+        "--dest",
+        default=DEFAULT_DEST,
+        help=f"dest для Reality — куда проксировать «чужих» (default {DEFAULT_DEST})",
+    )
+    ap.add_argument(
+        "--name", default=DEFAULT_NAME, help="имя профиля в клиенте (default fresta-reality)"
+    )
+    ap.add_argument(
+        "--fp",
+        default=DEFAULT_FP,
+        help=f"uTLS fingerprint (default {DEFAULT_FP}). chrome/firefox/safari/edge/qq/random",
+    )
+    ap.add_argument("--short-id", default=None, help="shortId hex (default — сгенерируем сами)")
+    ap.add_argument("--uuid", default=None, help="UUID клиента (default — сгенерируем v4)")
+    ap.add_argument(
+        "--private-key", default=None, help="X25519 private key (base64url). По умолчанию — openssl"
+    )
+    ap.add_argument(
+        "--public-key", default=None, help="X25519 public key (base64url). По умолчанию — openssl"
+    )
+    ap.add_argument(
+        "--out",
+        default=DEFAULT_OUT,
+        help=f"каталог для конфигов (default {os.path.relpath(DEFAULT_OUT)})",
+    )
     args = ap.parse_args()
     # Нормализуем путь: на Windows `os.path.join` не разворачивает `\\` из CLI.
     args.out = os.path.normpath(args.out)
@@ -426,48 +487,51 @@ def main() -> None:
 
     # 3. Ключи.
     priv, pub = args.private_key, args.public_key
-    openssl_missing = False
     if priv and pub:
         pass  # пользователь принёс свои
     else:
         try:
             priv, pub = gen_x25519_openssl()
         except FileNotFoundError:
-            openssl_missing = True
             priv, pub = PH_PRIV, PH_PUB
         except RuntimeError as e:
-            sys.exit(f"Не смог сгенерировать X25519 ({e}). "
-                     "Передай --private-key/--public-key готовыми.")
+            sys.exit(
+                f"Не смог сгенерировать X25519 ({e}). Передай --private-key/--public-key готовыми."
+            )
 
     # 4. Сборка.
-    server_cfg = build_server_json(snis, args.listen_ip, args.exit_port,
-                                   args.dest, priv, sid)
+    server_cfg = build_server_json(snis, args.listen_ip, args.exit_port, args.dest, priv, sid)
     # подставим реальный UUID вместо плейсхолдера
     server_cfg["inbounds"][0]["settings"]["clients"][0]["id"] = uuid_str
 
     main_sni = snis[0]
-    client_cfg = build_client_json(args.exit_ip, args.exit_port, main_sni,
-                                   uuid_str, pub, sid, args.fp)
+    client_cfg = build_client_json(
+        args.exit_ip, args.exit_port, main_sni, uuid_str, pub, sid, args.fp
+    )
 
-    links = [build_vless_link(args.exit_ip, args.exit_port, s, uuid_str,
-                              pub, sid, args.fp, args.name) for s in snis]
+    links = [
+        build_vless_link(args.exit_ip, args.exit_port, s, uuid_str, pub, sid, args.fp, args.name)
+        for s in snis
+    ]
 
     # 5. Каталог и запись.
     os.makedirs(args.out, exist_ok=True)
     write_json(os.path.join(args.out, "server.json"), server_cfg)
     write_json(os.path.join(args.out, "client.json"), client_cfg)
-    write_text(os.path.join(args.out, "links.txt"),
-               "\n".join(links) + "\n")
+    write_text(os.path.join(args.out, "links.txt"), "\n".join(links) + "\n")
     write_text(os.path.join(args.out, "gen-keys.sh"), GEN_KEYS_SH)
     os.chmod(os.path.join(args.out, "gen-keys.sh"), 0o755)
-    write_text(os.path.join(args.out, "README.md"),
-               render_readme(args.name, args.exit_ip, args.exit_port,
-                             uuid_str, sid, args.fp, snis, args.dest))
+    write_text(
+        os.path.join(args.out, "README.md"),
+        render_readme(
+            args.name, args.exit_ip, args.exit_port, uuid_str, sid, args.fp, snis, args.dest
+        ),
+    )
 
     # info.txt — текстом, чтобы не лазить в JSON
     info = [
-        f"fresta · VLESS+Reality profile",
-        f"",
+        "fresta · VLESS+Reality profile",
+        "",
         f"  name          {args.name}",
         f"  exit_ip       {args.exit_ip}",
         f"  exit_port     {args.exit_port}/tcp",
@@ -484,12 +548,12 @@ def main() -> None:
 
     # 6. Итог.
     print(f"[+] Готово. Файлы в {args.out}:")
-    print(f"      server.json     Xray inbound (VLESS+Reality+TCP)")
+    print("      server.json     Xray inbound (VLESS+Reality+TCP)")
     print(f"      client.json     sing-box outbound, основной SNI = {main_sni}")
     print(f"      links.txt       {len(links)} vless://-ссылок (по одной на SNI)")
-    print(f"      info.txt        UUID / ключи / shortId текстом")
-    print(f"      gen-keys.sh     chmod +x — перегенерация X25519 (если надо)")
-    print(f"      README.md       деплой на VPS + импорт в клиент")
+    print("      info.txt        UUID / ключи / shortId текстом")
+    print("      gen-keys.sh     chmod +x — перегенерация X25519 (если надо)")
+    print("      README.md       деплой на VPS + импорт в клиент")
     print()
     print(f"    UUID        {uuid_str}")
     print(f"    shortId     {sid}")
@@ -498,8 +562,10 @@ def main() -> None:
     if args.exit_ip == PH_IP:
         print(f"\n[!] exit_ip — плейсхолдер ({PH_IP}). Перед деплоем передай --exit-ip <IP>.")
     if priv == PH_PRIV:
-        print(f"[!] `openssl` не нашёлся — ключи-плейсхолдеры. "
-              f"Запусти {os.path.join(args.out, 'gen-keys.sh')} и подставь.")
+        print(
+            f"[!] `openssl` не нашёлся — ключи-плейсхолдеры. "
+            f"Запусти {os.path.join(args.out, 'gen-keys.sh')} и подставь."
+        )
 
 
 if __name__ == "__main__":

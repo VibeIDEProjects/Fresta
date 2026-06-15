@@ -23,6 +23,8 @@ fresta · diff_configs.py — сравнение двух server.json / client.j
 Зависимостей нет (только stdlib).
 """
 
+from __future__ import annotations
+
 import argparse
 import difflib
 import json
@@ -44,7 +46,7 @@ def diff_dict(a: Any, b: Any, path: str = "$") -> list[tuple[str, Any, Any]]:
     'old' или 'new' = None, если поле отсутствует с одной из сторон.
     """
     diffs: list[tuple[str, Any, Any]] = []
-    if type(a) != type(b):
+    if type(a) is not type(b):
         diffs.append((path, a, b))
         return diffs
     if isinstance(a, dict):
@@ -70,7 +72,7 @@ def diff_dict(a: Any, b: Any, path: str = "$") -> list[tuple[str, Any, Any]]:
 def redact(s: str) -> str:
     """Красная маркировка чувствительных значений (UUID / ключи / IP)."""
     s = str(s)
-    if len(s) >= 40:                # base64url ключ (43 символа)
+    if len(s) >= 40:  # base64url ключ (43 символа)
         return s[:8] + "..." + s[-4:]
     if len(s) == 36 and s.count("-") == 4:  # UUID
         return s[:8] + "..."
@@ -111,8 +113,10 @@ def print_summary(diffs: list[tuple[str, Any, Any]]) -> None:
 def print_full(diffs: list[tuple[str, Any, Any]], redact_secrets: bool) -> None:
     print(f"== Полный diff ({len(diffs)} изменений) ==")
     for path, old, new in diffs:
-        o, n = (redact(old) if redact_secrets else repr(old)), \
-               (redact(new) if redact_secrets else repr(new))
+        o, n = (
+            (redact(old) if redact_secrets else repr(old)),
+            (redact(new) if redact_secrets else repr(new)),
+        )
         if old is None:
             print(f"  + {path} = {n}")
         elif new is None:
@@ -125,12 +129,21 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="fresta · diff двух JSON-конфигов")
     ap.add_argument("old", help="путь к старому JSON-файлу или каталогу (с --dir)")
     ap.add_argument("new", help="путь к новому JSON-файлу или каталогу (с --dir)")
-    ap.add_argument("--dir", action="store_true",
-                    help="сравнивать каталоги: server<->server, client<->client, links<->links")
-    ap.add_argument("--summary-only", action="store_true",
-                    help="только сводка по важным полям (UUID/ключи/shortId/порт)")
-    ap.add_argument("--no-redact", action="store_true",
-                    help="НЕ маскировать UUID/ключи в выводе (для собственного дебага)")
+    ap.add_argument(
+        "--dir",
+        action="store_true",
+        help="сравнивать каталоги: server<->server, client<->client, links<->links",
+    )
+    ap.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="только сводка по важным полям (UUID/ключи/shortId/порт)",
+    )
+    ap.add_argument(
+        "--no-redact",
+        action="store_true",
+        help="НЕ маскировать UUID/ключи в выводе (для собственного дебага)",
+    )
     ap.add_argument("--json", action="store_true", help="машинный JSON-вывод")
     args = ap.parse_args()
 
@@ -142,7 +155,9 @@ def main() -> int:
             if os.path.isfile(a) and os.path.isfile(b):
                 pairs.append((fname, a, b))
         if not pairs:
-            sys.exit("[!] в обоих каталогах не нашлось ни server.json, ни client.json, ни links.txt")
+            sys.exit(
+                "[!] в обоих каталогах не нашлось ни server.json, ни client.json, ни links.txt"
+            )
     else:
         pairs = [(os.path.basename(args.old), args.old, args.new)]
 
@@ -182,8 +197,11 @@ def main() -> int:
         for label, diffs in all_diffs.items():
             if diffs and isinstance(diffs[0], tuple):
                 out[label] = [
-                    {"path": p, "old": (str(o) if o is not None else None),
-                     "new": (str(n) if n is not None else None)}
+                    {
+                        "path": p,
+                        "old": (str(o) if o is not None else None),
+                        "new": (str(n) if n is not None else None),
+                    }
                     for p, o, n in diffs
                 ]
             else:

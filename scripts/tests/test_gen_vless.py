@@ -1,11 +1,14 @@
 """smoke-тесты fresta_gen_vless.py — негативные кейсы CLI."""
+
 import os
 import shutil
 import subprocess
 import sys
 
 # Тест лежит в scripts/tests/, а сам скрипт — на уровень выше, в scripts/.
-SCRIPT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "deploy", "fresta_gen_vless.py"))
+SCRIPT = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "deploy", "fresta_gen_vless.py")
+)
 PY = sys.executable
 
 
@@ -61,6 +64,7 @@ print(f"OK: relative path normalized -> {norm}")
 r = run("--exit-ip", "5.181.1.1", "--out", "_tmp_full")
 assert r.returncode == 0, r.stderr
 import json
+
 with open(os.path.join("_tmp_full", "server.json"), encoding="utf-8") as fh:
     srv = json.load(fh)
 n_sni = len(srv["inbounds"][0]["streamSettings"]["realitySettings"]["serverNames"])
@@ -68,8 +72,18 @@ assert n_sni == 19, f"expected 19 SNI, got {n_sni}"
 print(f"OK: full run -> {n_sni} SNI in server.json")
 
 # 7. UUID и shortId — детерминированные через --uuid/--short-id
-r = run("--sni", "ads.x5.ru", "--exit-ip", "5.181.1.1", "--out", "_tmp_det",
-        "--uuid", "11111111-2222-3333-4444-555555555555", "--short-id", "deadbeef")
+r = run(
+    "--sni",
+    "ads.x5.ru",
+    "--exit-ip",
+    "5.181.1.1",
+    "--out",
+    "_tmp_det",
+    "--uuid",
+    "11111111-2222-3333-4444-555555555555",
+    "--short-id",
+    "deadbeef",
+)
 assert r.returncode == 0, r.stderr
 with open(os.path.join("_tmp_det", "server.json"), encoding="utf-8") as fh:
     srv = json.load(fh)
@@ -85,11 +99,19 @@ for L in links:
     assert L.startswith("vless://"), L[:60]
     assert "security=reality" in L
     assert "fp=chrome" in L
-print(f"OK: 19 vless:// links, all reality+chrome")
+print("OK: 19 vless:// links, all reality+chrome")
 
 # 9. --dest попадает в server.json
-r = run("--sni", "ads.x5.ru", "--exit-ip", "5.181.1.1", "--dest",
-        "www.microsoft.com:443", "--out", "_tmp_dest")
+r = run(
+    "--sni",
+    "ads.x5.ru",
+    "--exit-ip",
+    "5.181.1.1",
+    "--dest",
+    "www.microsoft.com:443",
+    "--out",
+    "_tmp_dest",
+)
 with open(os.path.join("_tmp_dest", "server.json"), encoding="utf-8") as fh:
     srv = json.load(fh)
 assert srv["inbounds"][0]["streamSettings"]["realitySettings"]["dest"] == "www.microsoft.com:443"
@@ -103,8 +125,17 @@ assert cli["outbounds"][0]["tls"]["utls"]["fingerprint"] == "firefox"
 print("OK: --fp firefox applied")
 
 # cleanup
-for d in ("_tmp_empty", "_tmp_bad", "_tmp_bad2", r"_tmp\rel", "_tmp_full",
-          "_tmp_det", "_tmp_dest", "_tmp_fp", "_empty.txt"):
+for d in (
+    "_tmp_empty",
+    "_tmp_bad",
+    "_tmp_bad2",
+    r"_tmp\rel",
+    "_tmp_full",
+    "_tmp_det",
+    "_tmp_dest",
+    "_tmp_fp",
+    "_empty.txt",
+):
     p = os.path.normpath(d)
     if os.path.isdir(p):
         shutil.rmtree(p, ignore_errors=True)

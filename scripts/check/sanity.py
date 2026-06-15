@@ -34,30 +34,29 @@ import shutil
 import subprocess
 import sys
 
-
 CHECKS = [
-    ("python3",      "python3",  "3.8+",    True,  "для запуска всех скриптов"),
-    ("openssl",      "openssl",  "1.1.1+",  True,  "для X25519 в fresta_gen_vless.py"),
-    ("ssh",          "ssh",      "любая",   True,  "для деплоя"),
-    ("scp",          "scp",      "любая",   True,  "для копирования конфигов"),
-    ("git",          "git",      "любая",   True,  "для harvest_twl.py"),
-    ("sshpass",      "sshpass",  "любая",   False, "деплой по паролю"),
-    ("curl",         "curl",     "любая",   False, "для Метода 2 / health-check"),
-    ("nc",           "nc",       "любая",   False, "проверка открытости порта"),
-    ("jq",           "jq",       "любая",   False, "JSON в шелле"),
-    ("xray",         "xray",     "любая",   False, "на VPS (ставится deploy_vps.sh)"),
-    ("sing-box",     "sing-box", "любая",   False, "клиент"),
-    ("yc",           "yc",       "любая",   False, "Yandex Cloud CLI (Метод 2)"),
+    ("python3", "python3", "3.8+", True, "для запуска всех скриптов"),
+    ("openssl", "openssl", "1.1.1+", True, "для X25519 в fresta_gen_vless.py"),
+    ("ssh", "ssh", "любая", True, "для деплоя"),
+    ("scp", "scp", "любая", True, "для копирования конфигов"),
+    ("git", "git", "любая", True, "для harvest_twl.py"),
+    ("sshpass", "sshpass", "любая", False, "деплой по паролю"),
+    ("curl", "curl", "любая", False, "для Метода 2 / health-check"),
+    ("nc", "nc", "любая", False, "проверка открытости порта"),
+    ("jq", "jq", "любая", False, "JSON в шелле"),
+    ("xray", "xray", "любая", False, "на VPS (ставится deploy_vps.sh)"),
+    ("sing-box", "sing-box", "любая", False, "клиент"),
+    ("yc", "yc", "любая", False, "Yandex Cloud CLI (Метод 2)"),
 ]
 
 HINTS = {
-    "openssl":  "choco install openssl / brew install openssl / apt install openssl",
-    "sshpass":  "apt install sshpass / brew install hudochenkov/sshpass/sshpass. Альтернатива: ssh-copy-id",
-    "nc":       "choco install netcat / apt install netcat-openbsd",
-    "jq":       "choco install jq / apt install jq / scoop install jq",
-    "xray":     "ставится автоматически через deploy_vps.sh на VPS. Локально не нужен.",
+    "openssl": "choco install openssl / brew install openssl / apt install openssl",
+    "sshpass": "apt install sshpass / brew install hudochenkov/sshpass/sshpass. Альтернатива: ssh-copy-id",
+    "nc": "choco install netcat / apt install netcat-openbsd",
+    "jq": "choco install jq / apt install jq / scoop install jq",
+    "xray": "ставится автоматически через deploy_vps.sh на VPS. Локально не нужен.",
     "sing-box": "https://sing-box.sagernet.org / winget install SagerNet.sing-box",
-    "yc":       "https://cloud.yandex.ru/docs/cli/quickstart",
+    "yc": "https://cloud.yandex.ru/docs/cli/quickstart",
 }
 
 # scripts/check/ → scripts/ → repo root → schemas/
@@ -69,7 +68,7 @@ REQUIRED_SCHEMAS = ["server.schema.json", "client.schema.json"]
 # нестандартно: выводит help, баннер, интерактивно ждёт ввода и т.п.
 # Для них нужно явно передать правильный флаг/subcommand.
 _BARE_INCOMPATIBLE = {
-    "openssl": ["version", "--version", "-V"],   # OpenSSL 3.x → только `version`
+    "openssl": ["version", "--version", "-V"],  # OpenSSL 3.x → только `version`
 }
 
 
@@ -118,21 +117,43 @@ def check_cmd(name):
 
 def check_schemas():
     missing = [s for s in REQUIRED_SCHEMAS if not os.path.isfile(os.path.join(SCHEMA_DIR, s))]
-    return {"name": "schemas", "version": f"{len(REQUIRED_SCHEMAS) - len(missing)}/{len(REQUIRED_SCHEMAS)}",
-            "ok": not missing, "missing": missing}
+    return {
+        "name": "schemas",
+        "version": f"{len(REQUIRED_SCHEMAS) - len(missing)}/{len(REQUIRED_SCHEMAS)}",
+        "ok": not missing,
+        "missing": missing,
+    }
 
 
 def main():
     ap = argparse.ArgumentParser(description="fresta · pre-flight check зависимостей")
-    ap.add_argument("--required-only", action="store_true",
-                    help="только обязательные (ssh, openssl, python, git, scp, schemas)")
+    ap.add_argument(
+        "--required-only",
+        action="store_true",
+        help="только обязательные (ssh, openssl, python, git, scp, schemas)",
+    )
     ap.add_argument("--json", action="store_true", help="машинный JSON-вывод")
     args = ap.parse_args()
 
-    results = [check_python(), check_openssl(), check_cmd("ssh"), check_cmd("scp"), check_cmd("git")]
+    results = [
+        check_python(),
+        check_openssl(),
+        check_cmd("ssh"),
+        check_cmd("scp"),
+        check_cmd("git"),
+    ]
     if not args.required_only:
-        results.extend([check_cmd("sshpass"), check_cmd("curl"), check_cmd("nc"), check_cmd("jq"),
-                        check_cmd("xray"), check_cmd("sing-box"), check_cmd("yc")])
+        results.extend(
+            [
+                check_cmd("sshpass"),
+                check_cmd("curl"),
+                check_cmd("nc"),
+                check_cmd("jq"),
+                check_cmd("xray"),
+                check_cmd("sing-box"),
+                check_cmd("yc"),
+            ]
+        )
     results.append(check_schemas())
 
     if args.json:

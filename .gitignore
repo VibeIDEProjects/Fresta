@@ -20,6 +20,10 @@ dist/
 .pytest_cache/
 .coverage
 .env
+# Временные одноразовые helper-скрипты вне системного tmp (прибиваем явно)
+scripts/_tmp_*.py
+scripts/_tmp_*.txt
+scripts/_tmp_*
 htmlcov/
 
 # Editor / IDE

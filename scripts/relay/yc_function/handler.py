@@ -20,22 +20,30 @@ import socket
 import urllib.error
 import urllib.request
 
-TOKEN = os.environ.get("FRESTA_TOKEN", "")     # задаётся в env функции
+TOKEN = os.environ.get("FRESTA_TOKEN", "")  # задаётся в env функции
 TIMEOUT = int(os.environ.get("FRESTA_TIMEOUT", "20"))
-MAX_BODY = 6 * 1024 * 1024                       # 6 МБ потолок на тело
+MAX_BODY = 6 * 1024 * 1024  # 6 МБ потолок на тело
 
 # Заголовки, которые НЕ пробрасываем на целевой сервер.
 HOP = {
-    "host", "content-length", "connection", "keep-alive", "proxy-authenticate",
-    "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade",
-    "accept-encoding", "x-fresta-token",
+    "host",
+    "content-length",
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailers",
+    "transfer-encoding",
+    "upgrade",
+    "accept-encoding",
+    "x-fresta-token",
 }
 
 
 def _ok(status, headers, body_bytes):
     """Завернуть ответ цели в конверт и отдать функцией наружу."""
-    env = {"status": status, "headers": headers,
-           "body_b64": base64.b64encode(body_bytes).decode()}
+    env = {"status": status, "headers": headers, "body_b64": base64.b64encode(body_bytes).decode()}
     payload = json.dumps(env).encode()
     return {
         "statusCode": 200,
@@ -58,8 +66,7 @@ def _blocked_host(host):
         return True
     for *_, sockaddr in infos:
         ip = ipaddress.ip_address(sockaddr[0])
-        if (ip.is_private or ip.is_loopback or ip.is_link_local
-                or ip.is_reserved or ip.is_multicast):
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
             return True
     return False
 
@@ -94,8 +101,7 @@ def handler(event, context):
         return _err(403, "target blocked")
 
     # 3. Собрать чистые заголовки и выполнить запрос.
-    out_headers = {k: v for k, v in (req.get("headers") or {}).items()
-                   if k.lower() not in HOP}
+    out_headers = {k: v for k, v in (req.get("headers") or {}).items() if k.lower() not in HOP}
     out_headers.setdefault("User-Agent", "Mozilla/5.0 (fresta-relay)")
     body = base64.b64decode(req["body_b64"]) if req.get("body_b64") else None
 
@@ -107,5 +113,5 @@ def handler(event, context):
     except urllib.error.HTTPError as e:
         data = e.read(MAX_BODY)
         return _ok(e.code, dict(e.headers), data)
-    except Exception as e:  # noqa: BLE001 — любая ошибка апстрима -> 502 наружу
+    except Exception as e:
         return _err(502, f"upstream error: {type(e).__name__}: {e}")

@@ -20,6 +20,8 @@ whitelist.txt — по одному домену в строке, # для ко�
 Зависимостей нет. Только стандартная библиотека Python 3.8+.
 """
 
+from __future__ import annotations
+
 import argparse
 import concurrent.futures as cf
 import ipaddress
@@ -30,12 +32,26 @@ import sys
 # --- Cloudflare публикует свои IPv4-диапазоны, они стабильны. -----------------
 # Оффлайн-сигнал высокой точности: если IP попал сюда — это точно Cloudflare,
 # даже если whois-имя по какой-то причине нечитаемо.
-CLOUDFLARE_V4 = [ipaddress.ip_network(c) for c in (
-    "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
-    "141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
-    "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
-    "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
-)]
+CLOUDFLARE_V4 = [
+    ipaddress.ip_network(c)
+    for c in (
+        "173.245.48.0/20",
+        "103.21.244.0/22",
+        "103.22.200.0/22",
+        "103.31.4.0/22",
+        "141.101.64.0/18",
+        "108.162.192.0/18",
+        "190.93.240.0/20",
+        "188.114.96.0/20",
+        "197.234.240.0/22",
+        "198.41.128.0/17",
+        "162.158.0.0/15",
+        "104.16.0.0/13",
+        "104.24.0.0/14",
+        "172.64.0.0/13",
+        "131.0.72.0/22",
+    )
+]
 
 # --- Сигнатуры CDN по имени AS. ----------------------------------------------
 # deploy: "yes"  — можем развернуть relay (наш сценарий)
@@ -43,28 +59,28 @@ CLOUDFLARE_V4 = [ipaddress.ip_network(c) for c in (
 #         "no"   — relay не развернуть, как вход не годится
 CDN_SIGNATURES = [
     # --- Российская инфра: то, что реально лежит в РФ-белом списке (по скану twl) ---
-    ("YANDEX",     "Yandex Cloud", "yes",  "Functions / API Gateway / VPS — главный кандидат в РФ"),
-    ("SELECTEL",   "Selectel",     "yes",  "VPS — бери IP в whitelisted-подсети"),
-    ("TIMEWEB",    "Timeweb",      "yes",  "VPS, бесплатный reroll IP"),
-    ("BEGET",      "Beget",        "yes",  "VPS-хостинг"),
-    ("REG.RU",     "REG.RU",       "yes",  "VPS / хостинг"),
-    ("REGRU",      "REG.RU",       "yes",  "VPS / хостинг"),
-    ("RUVDS",      "RUVDS",        "yes",  "VPS-хостинг"),
-    ("AEZA",       "Aeza",         "yes",  "VPS-хостинг"),
-    ("VKONTAKTE",  "VK Cloud",     "hard", "VPS есть, но сложная верификация"),
-    ("MAIL.RU",    "VK/Mail Cloud","hard", "VPS есть, верификация"),
-    ("CDNVIDEO",   "CDNvideo",     "no",   "CDN — relay не развернуть, но годится как SNI"),
-    ("DDOS-GUARD", "DDoS-Guard",   "no",   "WAF/CDN, edge закрыт (возможный SNI)"),
-    ("ROSTELECOM", "Ростелеком",   "no",   "оператор, не разворачиваемо"),
-    ("TELETECH",   "TELETECH/AS208398", "no", "балканский edge-провайдер (Яндекс продал блок)"),
-    ("VIMPELCOM",  "Билайн",       "no",   "оператор"),
-    ("MEGAFON",    "МегаФон",      "no",   "оператор"),
+    ("YANDEX", "Yandex Cloud", "yes", "Functions / API Gateway / VPS — главный кандидат в РФ"),
+    ("SELECTEL", "Selectel", "yes", "VPS — бери IP в whitelisted-подсети"),
+    ("TIMEWEB", "Timeweb", "yes", "VPS, бесплатный reroll IP"),
+    ("BEGET", "Beget", "yes", "VPS-хостинг"),
+    ("REG.RU", "REG.RU", "yes", "VPS / хостинг"),
+    ("REGRU", "REG.RU", "yes", "VPS / хостинг"),
+    ("RUVDS", "RUVDS", "yes", "VPS-хостинг"),
+    ("AEZA", "Aeza", "yes", "VPS-хостинг"),
+    ("VKONTAKTE", "VK Cloud", "hard", "VPS есть, но сложная верификация"),
+    ("MAIL.RU", "VK/Mail Cloud", "hard", "VPS есть, верификация"),
+    ("CDNVIDEO", "CDNvideo", "no", "CDN — relay не развернуть, но годится как SNI"),
+    ("DDOS-GUARD", "DDoS-Guard", "no", "WAF/CDN, edge закрыт (возможный SNI)"),
+    ("ROSTELECOM", "Ростелеком", "no", "оператор, не разворачиваемо"),
+    ("TELETECH", "TELETECH/AS208398", "no", "балканский edge-провайдер (Яндекс продал блок)"),
+    ("VIMPELCOM", "Билайн", "no", "оператор"),
+    ("MEGAFON", "МегаФон", "no", "оператор"),
     # --- Западные CDN: в РФ-белом списке почти не встречаются, но мало ли ---
-    ("CLOUDFLARE", "Cloudflare",   "yes",  "Workers (в РФ-БС редко)"),
-    ("FASTLY",     "Fastly",       "yes",  "Compute@Edge (в РФ-БС редко)"),
-    ("CLOUDFRONT", "CloudFront",   "yes",  "AWS CloudFront (в РФ-БС редко)"),
-    ("AMAZON",     "Amazon/AWS",   "hard", "AWS (в РФ-БС практически нет)"),
-    ("AKAMAI",     "Akamai",       "no",   "edge не развернуть"),
+    ("CLOUDFLARE", "Cloudflare", "yes", "Workers (в РФ-БС редко)"),
+    ("FASTLY", "Fastly", "yes", "Compute@Edge (в РФ-БС редко)"),
+    ("CLOUDFRONT", "CloudFront", "yes", "AWS CloudFront (в РФ-БС редко)"),
+    ("AMAZON", "Amazon/AWS", "hard", "AWS (в РФ-БС практически нет)"),
+    ("AKAMAI", "Akamai", "no", "edge не развернуть"),
 ]
 
 DEPLOY_RANK = {"yes": 0, "hard": 1, "no": 2, "?": 3}
@@ -89,7 +105,7 @@ def resolve(domain):
     т.е. ровно тот, что у тебя на канале."""
     ips = set()
     try:
-        for fam, _, _, _, sockaddr in socket.getaddrinfo(domain, 443, proto=socket.IPPROTO_TCP):
+        for _fam, _, _, _, sockaddr in socket.getaddrinfo(domain, 443, proto=socket.IPPROTO_TCP):
             ips.add(sockaddr[0])
     except (socket.gaierror, UnicodeError) as e:
         return domain, set(), str(e)
@@ -198,8 +214,9 @@ def build(domains_ips, cymru):
         best = None  # (deploy_rank, cdn, deploy, detail)
         for ip in ips:
             cdn, deploy, detail = classify(ip, cymru.get(ip, []))
-            bucket = per_cdn.setdefault(cdn, {"deploy": deploy, "detail": detail,
-                                              "domains": set(), "ips": set()})
+            bucket = per_cdn.setdefault(
+                cdn, {"deploy": deploy, "detail": detail, "domains": set(), "ips": set()}
+            )
             bucket["domains"].add(domain)
             bucket["ips"].add(ip)
             cand = (DEPLOY_RANK[deploy], cdn, deploy, detail)
@@ -217,21 +234,28 @@ def probe(ip, sni, timeout=10):
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     try:
-        with socket.create_connection((ip, 443), timeout=timeout) as raw:
+        with socket.create_connection((ip, 443), timeout=timeout) as raw:  # noqa: SIM117
             with ctx.wrap_socket(raw, server_hostname=sni) as tls:
                 proto = tls.version()
                 cert = tls.getpeercert(binary_form=True)
                 return True, f"{proto}, сертификат получен ({len(cert)} байт)"
-    except Exception as e:  # noqa: BLE001 — нам нужен любой провал как «не прошло»
+    except Exception as e:
         return False, f"{type(e).__name__}: {e}"
 
 
 def main():
-    ap = argparse.ArgumentParser(description="fresta recon — есть ли в белом списке разворачиваемый CDN")
+    ap = argparse.ArgumentParser(
+        description="fresta recon — есть ли в белом списке разворачиваемый CDN"
+    )
     ap.add_argument("whitelist", help="файл со списком разрешённых доменов (по одному в строке)")
-    ap.add_argument("--probe", action="store_true",
-                    help="после анализа проверить TLS-handshake к лучшему найденному CDN")
-    ap.add_argument("--sni", help="домен для SNI в probe (по умолчанию — разрешённый домен за этим CDN)")
+    ap.add_argument(
+        "--probe",
+        action="store_true",
+        help="после анализа проверить TLS-handshake к лучшему найденному CDN",
+    )
+    ap.add_argument(
+        "--sni", help="домен для SNI в probe (по умолчанию — разрешённый домен за этим CDN)"
+    )
     args = ap.parse_args()
 
     try:
@@ -251,7 +275,7 @@ def main():
 
     print(f"[*] Определяю ASN/CDN для {len(all_ips)} IP…")
     cymru = cymru_bulk(all_ips)
-    per_domain, per_cdn = build(domains_ips, cymru)
+    _per_domain, per_cdn = build(domains_ips, cymru)
 
     print("\n=== Что за каким CDN ===")
     for cdn, b in sorted(per_cdn.items(), key=lambda kv: DEPLOY_RANK[kv[1]["deploy"]]):
@@ -259,8 +283,9 @@ def main():
         ips_sample = ", ".join(sorted(b["ips"])[:3])
         print(f"\n{mark} {cdn}  ({b['detail']})")
         print(f"      доменов: {len(b['domains'])} | пример IP: {ips_sample}")
-        print(f"      {', '.join(sorted(b['domains'])[:6])}"
-              + (" …" if len(b["domains"]) > 6 else ""))
+        print(
+            f"      {', '.join(sorted(b['domains'])[:6])}" + (" …" if len(b["domains"]) > 6 else "")
+        )
 
     # --- Вердикт ---
     deployable = {c: b for c, b in per_cdn.items() if b["deploy"] == "yes"}
@@ -286,7 +311,9 @@ def main():
             if ok:
                 print("    Edge достижим сквозь whitelist и handshake проходит — вход рабочий.")
             else:
-                print("    Edge не ответил: возможно whitelist режет и сам CDN, либо нужен другой SNI/IP.")
+                print(
+                    "    Edge не ответил: возможно whitelist режет и сам CDN, либо нужен другой SNI/IP."
+                )
     else:
         print("NO-GO ⛔  В белом списке нет CDN, на котором можно развернуть relay.")
         print("        Фронтить не через что. Этим способом задача не решается —")

@@ -19,8 +19,10 @@
 __version__ = "0.2.1"
 
 # Краткое описание для `python -c "import fresta; help(fresta)"`
-__summary__ = "Обход операторских IP-белых списков через whitelisted-инфраструктуру (Yandex Cloud, РФ-VPS)"
+__summary__ = (
+    "Обход операторских IP-белых списков через whitelisted-инфраструктуру (Yandex Cloud, РФ-VPS)"
+)
 
 # Маркеры, помогающие авто-тестам/докам понять, что это не библиотека для импорта,
 # а набор CLI-скриптов.
-__all__ = ["__version__", "__summary__"]
+__all__ = ["__summary__", "__version__"]

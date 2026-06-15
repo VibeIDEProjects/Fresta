@@ -27,22 +27,21 @@ import json
 import os
 import re
 import sys
-import uuid
 from typing import Any
-
 
 # Схемы лежат в <корень>/schemas/ (рядом с scripts/), относительно deploy/ — ../../schemas.
 SCHEMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "schemas")
 
 
-
-
-
 # ── валидаторы форматов ─────────────────────────────────────────────────────
 
-RE_UUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+RE_UUID = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 RE_IPV4 = re.compile(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$")
-RE_DOMAIN = re.compile(r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}\.?$")
+RE_DOMAIN = re.compile(
+    r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}\.?$"
+)
 
 
 def _check_format(value: str, fmt: str) -> bool:
@@ -58,6 +57,7 @@ def _check_format(value: str, fmt: str) -> bool:
 
 
 # ── ядро валидатора ────────────────────────────────────────────────────────
+
 
 class ValidationError:
     def __init__(self, path: str, msg: str):
@@ -75,8 +75,15 @@ def _validate(value: Any, schema: dict, path: str = "$") -> list[ValidationError
     t = schema.get("type")
     if t:
         types = t if isinstance(t, list) else [t]
-        py_types = {"string": str, "integer": int, "number": (int, float),
-                    "boolean": bool, "array": list, "object": dict, "null": type(None)}
+        py_types = {
+            "string": str,
+            "integer": int,
+            "number": (int, float),
+            "boolean": bool,
+            "array": list,
+            "object": dict,
+            "null": type(None),
+        }
         ok = False
         for want in types:
             py_t = py_types.get(want)
@@ -100,21 +107,29 @@ def _validate(value: Any, schema: dict, path: str = "$") -> list[ValidationError
         errs.append(ValidationError(path, f"value {value!r} not in enum {schema['enum']}"))
 
     # format (только для строк)
-    if "format" in schema and isinstance(value, str):
-        if not _check_format(value, schema["format"]):
-            errs.append(ValidationError(path, f"value {value!r} not valid format={schema['format']}"))
+    if "format" in schema and isinstance(value, str) and not _check_format(value, schema["format"]):
+        errs.append(ValidationError(path, f"value {value!r} not valid format={schema['format']}"))
 
     # pattern (regex)
-    if "pattern" in schema and isinstance(value, str):
-        if not re.search(schema["pattern"], value):
-            errs.append(ValidationError(path, f"value {value!r} does not match pattern {schema['pattern']!r}"))
+    if "pattern" in schema and isinstance(value, str) and not re.search(schema["pattern"], value):
+        errs.append(
+            ValidationError(path, f"value {value!r} does not match pattern {schema['pattern']!r}")
+        )
 
     # minLength / maxLength
     if isinstance(value, str):
         if "minLength" in schema and len(value) < schema["minLength"]:
-            errs.append(ValidationError(path, f"string length {len(value)} < minLength {schema['minLength']}"))
+            errs.append(
+                ValidationError(
+                    path, f"string length {len(value)} < minLength {schema['minLength']}"
+                )
+            )
         if "maxLength" in schema and len(value) > schema["maxLength"]:
-            errs.append(ValidationError(path, f"string length {len(value)} > maxLength {schema['maxLength']}"))
+            errs.append(
+                ValidationError(
+                    path, f"string length {len(value)} > maxLength {schema['maxLength']}"
+                )
+            )
 
     # minimum / maximum (для чисел)
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -126,9 +141,13 @@ def _validate(value: Any, schema: dict, path: str = "$") -> list[ValidationError
     # minItems / maxItems (для массивов)
     if isinstance(value, list):
         if "minItems" in schema and len(value) < schema["minItems"]:
-            errs.append(ValidationError(path, f"array length {len(value)} < minItems {schema['minItems']}"))
+            errs.append(
+                ValidationError(path, f"array length {len(value)} < minItems {schema['minItems']}")
+            )
         if "maxItems" in schema and len(value) > schema["maxItems"]:
-            errs.append(ValidationError(path, f"array length {len(value)} > maxItems {schema['maxItems']}"))
+            errs.append(
+                ValidationError(path, f"array length {len(value)} > maxItems {schema['maxItems']}")
+            )
 
     # required + properties (для объектов)
     if isinstance(value, dict):
@@ -153,29 +172,46 @@ def _validate(value: Any, schema: dict, path: str = "$") -> list[ValidationError
 
 # ── вход ────────────────────────────────────────────────────────────────────
 
+
 def detect_schema(path: str) -> str:
     """По содержимому JSON определяем, server это или client."""
     with open(path, encoding="utf-8") as f:
         cfg = json.load(f)
-    if "inbounds" in cfg and isinstance(cfg["inbounds"], list) and cfg["inbounds"]:
-        if cfg["inbounds"][0].get("protocol") == "vless" and \
-           cfg["inbounds"][0].get("streamSettings", {}).get("security") == "reality":
-            return "server"
-    if "outbounds" in cfg and isinstance(cfg["outbounds"], list) and cfg["outbounds"]:
-        if cfg["outbounds"][0].get("type") == "vless" and \
-           "reality" in cfg["outbounds"][0].get("tls", {}):
-            return "client"
+    if (
+        "inbounds" in cfg
+        and isinstance(cfg["inbounds"], list)
+        and cfg["inbounds"]
+        and (
+            cfg["inbounds"][0].get("protocol") == "vless"
+            and cfg["inbounds"][0].get("streamSettings", {}).get("security") == "reality"
+        )
+    ):
+        return "server"
+    if (
+        "outbounds" in cfg
+        and isinstance(cfg["outbounds"], list)
+        and cfg["outbounds"]
+        and cfg["outbounds"][0].get("type") == "vless"
+        and "reality" in cfg["outbounds"][0].get("tls", {})
+    ):
+        return "client"
     raise ValueError(f"не могу определить тип {path} (нет ни 'inbounds' ни 'outbounds' с reality)")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="fresta · валидация server/client.json по JSON Schema")
     ap.add_argument("path", help="путь к server.json или client.json")
-    ap.add_argument("--schema", choices=["server", "client"],
-                    help="явно указать тип (по умолчанию — авто-детект)")
-    ap.add_argument("--use-jsonschema", action="store_true",
-                    help="использовать библиотеку jsonschema, если установлена "
-                         "(pip install jsonschema). Покрывает больше кейсов.")
+    ap.add_argument(
+        "--schema",
+        choices=["server", "client"],
+        help="явно указать тип (по умолчанию — авто-детект)",
+    )
+    ap.add_argument(
+        "--use-jsonschema",
+        action="store_true",
+        help="использовать библиотеку jsonschema, если установлена "
+        "(pip install jsonschema). Покрывает больше кейсов.",
+    )
     args = ap.parse_args()
 
     if not os.path.isfile(args.path):
@@ -197,15 +233,17 @@ def main() -> int:
 
     if args.use_jsonschema:
         try:
-            import jsonschema
             from jsonschema import Draft202012Validator
+
             v = Draft202012Validator(schema)
             errs = []
             for e in v.iter_errors(cfg):
-                errs.append(ValidationError(
-                    ".".join(str(p) for p in e.absolute_path) or "$",
-                    e.message,
-                ))
+                errs.append(
+                    ValidationError(
+                        ".".join(str(p) for p in e.absolute_path) or "$",
+                        e.message,
+                    )
+                )
         except ImportError:
             print("[!] --use-jsonschema: пакет 'jsonschema' не установлен", file=sys.stderr)
             print("    pip install jsonschema", file=sys.stderr)

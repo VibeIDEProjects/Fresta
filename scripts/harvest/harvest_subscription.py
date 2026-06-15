@@ -22,6 +22,7 @@ fresta · harvest_subscription.py
 import argparse
 import base64
 import collections
+import contextlib
 import ipaddress
 import re
 import sys
@@ -33,9 +34,23 @@ DEFAULT_SRC = "https://raw.githubusercontent.com/zieng2/wl/main/vless_lite.txt"
 # «Сильные» SNI — домены крупных сервисов, которые в whitelist у всех операторов.
 # Остальные (домены самих операторов узлов) помечаем как осторожные.
 STRONG_SNI_HINTS = (
-    "yandex", "yandexcloud", "x5.ru", "vk.com", "vk.ru", "max.ru", "rutube",
-    "ozon", "ozone", "kinopoisk", "kommersant", "perekrestok", "mail.ru",
-    "sber", "gosuslugi", "wildberries", "avito",
+    "yandex",
+    "yandexcloud",
+    "x5.ru",
+    "vk.com",
+    "vk.ru",
+    "max.ru",
+    "rutube",
+    "ozon",
+    "ozone",
+    "kinopoisk",
+    "kommersant",
+    "perekrestok",
+    "mail.ru",
+    "sber",
+    "gosuslugi",
+    "wildberries",
+    "avito",
 )
 
 
@@ -44,20 +59,19 @@ def load(src):
         with urllib.request.urlopen(src, timeout=30) as r:
             data = r.read()
     else:
-        data = open(src, "rb").read()
+        with open(src, "rb") as f:
+            data = f.read()
     text = data.decode("utf-8", "replace")
     if "vless://" not in text:  # вероятно base64-подписка
-        try:
+        with contextlib.suppress(Exception):
             text = base64.b64decode(text + "===").decode("utf-8", "replace")
-        except Exception:  # noqa: BLE001
-            pass
-    return [l.strip() for l in text.splitlines() if l.strip().startswith("vless://")]
+    return [line.strip() for line in text.splitlines() if line.strip().startswith("vless://")]
 
 
 def provider_from_label(label):
     """'🇷🇺 Beget — #2' -> 'Beget'."""
     label = up.unquote(label)
-    head = re.split(r"[—#]", label, 1)[0]          # отрезаем '— #N'
+    head = re.split(r"[—#]", label, maxsplit=1)[0]  # отрезаем '— #N'
     head = re.sub(r"^[^0-9A-Za-zА-Яа-я.]+", "", head).strip()  # снять флаг/эмодзи
     return head or "?"
 
@@ -66,8 +80,7 @@ def is_strong(sni):
     """Hint встречается как отдельный доменный лейбл (между точками или по краям),
     а не как подстрока. Иначе 'rutube123.evil.ru' ложно матчит hint='rutube'."""
     s = sni.lower()
-    return any(re.search(rf"(?:^|\.){re.escape(h)}(?:\.|$)", s)
-               for h in STRONG_SNI_HINTS)
+    return any(re.search(rf"(?:^|\.){re.escape(h)}(?:\.|$)", s) for h in STRONG_SNI_HINTS)
 
 
 def harvest(lines):
@@ -78,8 +91,8 @@ def harvest(lines):
     fp = collections.Counter()
     ip_hosts = dom_hosts = 0
     real = 0
-    for l in lines:
-        u = up.urlsplit(l)
+    for line in lines:
+        u = up.urlsplit(line)
         host = u.hostname or ""
         if host in ("0.0.0.0", "") or (u.username or "").startswith("00000000"):
             continue  # плейсхолдер
@@ -99,20 +112,24 @@ def harvest(lines):
         except ValueError:
             dom_hosts += 1
     return {
-        "real": real, "sni": sni, "providers": providers,
-        "sec": sec, "typ": typ, "fp": fp,
-        "ip_hosts": ip_hosts, "dom_hosts": dom_hosts,
+        "real": real,
+        "sni": sni,
+        "providers": providers,
+        "sec": sec,
+        "typ": typ,
+        "fp": fp,
+        "ip_hosts": ip_hosts,
+        "dom_hosts": dom_hosts,
     }
 
 
 def report(h, src):
     out = []
     p = out.append
-    p(f"# fresta · harvest-снимок подписки\n")
+    p("# fresta · harvest-снимок подписки\n")
     p(f"Источник: `{src}`")
-    p(f"Снимок точечный (подписка обновляется почасово — перезапусти для свежего).\n")
-    p(f"Серверов: **{h['real']}** | хосты: {h['ip_hosts']} IP-литералов, "
-      f"{h['dom_hosts']} доменных")
+    p("Снимок точечный (подписка обновляется почасово — перезапусти для свежего).\n")
+    p(f"Серверов: **{h['real']}** | хосты: {h['ip_hosts']} IP-литералов, {h['dom_hosts']} доменных")
     p(f"security: {dict(h['sec'])} · type: {dict(h['typ'])} · fp: {dict(h['fp'])}\n")
 
     p("## Провайдеры (живые узлы)\n")
@@ -133,8 +150,10 @@ def report(h, src):
     p("|-----|--------:|")
     for s, c in weak:
         p(f"| `{s}` | {c} |")
-    p("\n> Сильные SNI — кандидаты для нашего Reality-конфига (whitelisted у всех "
-      "операторов). Осторожные могут быть whitelisted не везде — проверяй probe'ом.")
+    p(
+        "\n> Сильные SNI — кандидаты для нашего Reality-конфига (whitelisted у всех "
+        "операторов). Осторожные могут быть whitelisted не везде — проверяй probe'ом."
+    )
     return "\n".join(out) + "\n"
 
 
@@ -156,8 +175,9 @@ def main():
     print("\nПровайдеры:")
     for prov, c in h["providers"].most_common():
         print(f"  {c:3}  {prov}")
-    print(f"\nУникальных SNI: {len(h['sni'])} (сильных: "
-          f"{sum(1 for s in h['sni'] if is_strong(s))})")
+    print(
+        f"\nУникальных SNI: {len(h['sni'])} (сильных: {sum(1 for s in h['sni'] if is_strong(s))})"
+    )
     for s, c in h["sni"].most_common(15):
         tag = "★" if is_strong(s) else " "
         print(f"  {tag} {c:3}  {s}")

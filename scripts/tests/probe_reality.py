@@ -11,12 +11,12 @@
 
 Запуск: python tests/probe_reality.py
 """
+
 import os
 import re
 import socket
 import ssl
 import sys
-
 
 SERVER = ("fresta.ru", 8443)
 
@@ -41,7 +41,7 @@ def probe(sni: str, timeout: int = 8) -> tuple[bool, str]:
         return False, f"NET: {e}"
     except ssl.SSLError as e:
         return False, f"TLS: {e}"
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return False, f"{type(e).__name__}: {e}"
 
 
@@ -55,8 +55,10 @@ def main() -> int:
             if d and not d.startswith("#"):
                 snis.append(d)
 
-    print(f"Probe {SERVER[0]}:{SERVER[1]} (Reality, без своего ключа) — "
-          f"ожидаем TLS-ответ от dest=www.google.com:443\n")
+    print(
+        f"Probe {SERVER[0]}:{SERVER[1]} (Reality, без своего ключа) — "
+        f"ожидаем TLS-ответ от dest=www.google.com:443\n"
+    )
     print(f"{'SNI':32s} {'status':6s}  {'detail'}")
     print("-" * 100)
 
@@ -70,12 +72,16 @@ def main() -> int:
 
     print()
     if bad == 0:
-        print(f"ALL_OK: {len(snis)}/{len(snis)} SNI ответили валидным TLS. "
-              f"Reality-сервер жив, маршрутизация по SNI работает.")
+        print(
+            f"ALL_OK: {len(snis)}/{len(snis)} SNI ответили валидным TLS. "
+            f"Reality-сервер жив, маршрутизация по SNI работает."
+        )
         return 0
     else:
-        print(f"PARTIAL: {len(snis) - bad}/{len(snis)} OK, {bad} не ответили. "
-              f"Сервер жив, но часть SNI не зашла (фильтр на пути или SNI-bl).")
+        print(
+            f"PARTIAL: {len(snis) - bad}/{len(snis)} OK, {bad} не ответили. "
+            f"Сервер жив, но часть SNI не зашла (фильтр на пути или SNI-bl)."
+        )
         return 1
 
 

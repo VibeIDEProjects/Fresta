@@ -1,15 +1,16 @@
 """smoke-тесты yc_function/handler.py — все ветки через мок event/context."""
+
 import base64
 import importlib.util
 import json
 import os
-import sys
 
 # 1. Загружаем модуль handler.py как обычный Python-модуль (не как пакет)
 #    и подменяем TOKEN на тестовый.
 # Тест лежит в scripts/tests/, а handler — в scripts/yc_function/.
-_HANDLER_PATH = os.path.normpath(os.path.join(
-    os.path.dirname(__file__), "..", "relay", "yc_function", "handler.py"))
+_HANDLER_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "relay", "yc_function", "handler.py")
+)
 spec = importlib.util.spec_from_file_location("handler", _HANDLER_PATH)
 handler = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(handler)
@@ -27,10 +28,7 @@ DEFAULT_TOKEN = "TEST_TOKEN_abc123"
 def call(body_obj=None, headers=None, token=DEFAULT_TOKEN, is_b64=False):
     """Сконструировать API Gateway-совместимый event и позвать handler()."""
     raw = json.dumps(body_obj).encode() if body_obj is not None else b""
-    if is_b64:
-        body_str = base64.b64encode(raw).decode()
-    else:
-        body_str = raw.decode()
+    body_str = base64.b64encode(raw).decode() if is_b64 else raw.decode()
     h = dict(headers or {})
     if token is not _SENTINEL:
         h["X-Fresta-Token"] = token
@@ -75,9 +73,14 @@ print("OK: 400 on ftp:// url")
 
 
 # --- 3. SSRF-защита --------------------------------------------------------
-for bad in ("http://127.0.0.1/x", "http://localhost/x", "http://10.0.0.1/x",
-            "http://192.168.0.1/x", "http://169.254.169.254/latest/meta-data/",
-            "http://[::1]/x"):
+for bad in (
+    "http://127.0.0.1/x",
+    "http://localhost/x",
+    "http://10.0.0.1/x",
+    "http://192.168.0.1/x",
+    "http://169.254.169.254/latest/meta-data/",
+    "http://[::1]/x",
+):
     r = call({"url": bad})
     assert r["statusCode"] == 403, f"SSRF {bad}: {r}"
 print("OK: 403 on private/loopback/link-local targets (6 cases)")
@@ -105,18 +108,22 @@ if r["statusCode"] == 200:
     # в нашей моде (handler.handler возвращает dict, как на API Gateway) body
     # всё ещё в base64. Клиент fresta_client.py:55-58 умеет оба варианта.
     import base64
+
     body_b64 = r["body"]
     try:
         payload = json.loads(body_b64)
     except ValueError:
         payload = json.loads(base64.b64decode(body_b64))
     assert "status" in payload and "body_b64" in payload
-    print(f"   status={payload['status']}, headers={len(payload.get('headers', {}))} шт, "
-          f"body={len(payload['body_b64'])} б64")
+    print(
+        f"   status={payload['status']}, headers={len(payload.get('headers', {}))} шт, "
+        f"body={len(payload['body_b64'])} б64"
+    )
 
 
 # --- 6. POST с телом -------------------------------------------------------
 import base64 as b64
+
 body = b64.b64encode(b'{"a":1}').decode()
 r = call({"url": "https://httpbin.org/post", "method": "POST", "body_b64": body})
 assert r["statusCode"] in (200, 502), f"unexpected: {r}"
@@ -126,10 +133,12 @@ print(f"OK: POST with body -> status {r['statusCode']}")
 # --- 7. HOP-заголовки не пробрасываются -----------------------------------
 # Это сложно проверить без мока urllib, но мы можем проверить, что функция
 # хотя бы не падает, если в headers есть "connection", "host" и пр.
-r = call({
-    "url": "https://example.com",
-    "headers": {"Host": "evil.com", "Connection": "keep-alive", "X-Fresta-Token": "leak"}
-})
+r = call(
+    {
+        "url": "https://example.com",
+        "headers": {"Host": "evil.com", "Connection": "keep-alive", "X-Fresta-Token": "leak"},
+    }
+)
 assert r["statusCode"] in (200, 502)
 print("OK: HOP-header pass-through doesn't crash")
 

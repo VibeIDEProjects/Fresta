@@ -29,8 +29,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 FUNC_URL = os.environ.get("FRESTA_FUNC_URL", "")
 TOKEN = os.environ.get("FRESTA_TOKEN", "")
 
-HOP_RESP = {"connection", "keep-alive", "transfer-encoding", "content-length",
-            "content-encoding", "te", "trailers", "upgrade"}
+HOP_RESP = {
+    "connection",
+    "keep-alive",
+    "transfer-encoding",
+    "content-length",
+    "content-encoding",
+    "te",
+    "trailers",
+    "upgrade",
+}
 
 
 def relay(url, method="GET", headers=None, body=None, timeout=30):
@@ -41,7 +49,9 @@ def relay(url, method="GET", headers=None, body=None, timeout=30):
     if body:
         env["body_b64"] = base64.b64encode(body).decode()
     req = urllib.request.Request(
-        FUNC_URL, data=json.dumps(env).encode(), method="POST",
+        FUNC_URL,
+        data=json.dumps(env).encode(),
+        method="POST",
         headers={"X-Fresta-Token": TOKEN, "Content-Type": "application/json"},
     )
     try:
@@ -88,7 +98,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         headers = {k: v for k, v in self.headers.items()}
         try:
             status, rheaders, data = relay(self.path, self.command, headers, body)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.send_error(502, f"relay error: {e}")
             return
         self.send_response(status)
@@ -127,8 +137,13 @@ def main():
     ap.add_argument("url", nargs="?", help="URL цели (http/https)")
     ap.add_argument("-X", "--method", default="GET", help="HTTP-метод")
     ap.add_argument("-d", "--data", help="тело запроса")
-    ap.add_argument("-H", "--header", action="append", type=lambda s: s.split(":", 1),
-                    help="доп. заголовок 'Key: Value' (можно несколько)")
+    ap.add_argument(
+        "-H",
+        "--header",
+        action="append",
+        type=lambda s: s.split(":", 1),
+        help="доп. заголовок 'Key: Value' (можно несколько)",
+    )
     ap.add_argument("--check", action="store_true", help="проверить канал и показать exit-IP")
     ap.add_argument("--proxy", type=int, metavar="PORT", help="поднять локальный HTTP-proxy")
     args = ap.parse_args()

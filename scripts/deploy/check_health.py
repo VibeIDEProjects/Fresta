@@ -24,22 +24,20 @@ Health-check только что задеплоенного vless-vps:
 
 import argparse
 import json
-import os
 import statistics
 import sys
 import time
 import urllib.error
 import urllib.request
 
-
 # Синтетические цели: HTTP-200, маленький ответ, не-Google (чтобы не зависеть
 # от одного домена). Каждая — кортеж (url, ожидаемый фрагмент или None).
 PROBES = [
     ("https://api.ipify.org?format=json", '"ip"'),
-    ("https://api.github.com/zen",         None),
-    ("https://example.com/",               "Example Domain"),
+    ("https://api.github.com/zen", None),
+    ("https://example.com/", "Example Domain"),
     ("https://www.cloudflare.com/cdn-cgi/trace", "fl="),
-    ("https://httpbin.org/uuid",           None),
+    ("https://httpbin.org/uuid", None),
 ]
 
 TIMEOUT = 10  # секунд на один запрос
@@ -70,13 +68,19 @@ def socks5_get(host: str, port: int, target_url: str, timeout: int) -> tuple[int
             raise RuntimeError(f"SOCKS5 greeting failed: {greet!r}")
         # CONNECT: ATYP=3 (domain), затем len+domain, port (2 байта BE)
         from urllib.parse import urlparse
+
         u = urlparse(target_url)
         if u.scheme != "https":
             raise ValueError(f"only https:// supported in probe, got {u.scheme}")
         if not u.hostname:
             raise ValueError(f"no host in {target_url}")
         port_num = u.port or 443
-        req = b"\x05\x01\x00\x03" + bytes([len(u.hostname)]) + u.hostname.encode() + port_num.to_bytes(2, "big")
+        req = (
+            b"\x05\x01\x00\x03"
+            + bytes([len(u.hostname)])
+            + u.hostname.encode()
+            + port_num.to_bytes(2, "big")
+        )
         s.sendall(req)
         # Ответ: VER, REP, RSV, ATYP, BND.ADDR, BND.PORT
         hdr = b""
@@ -88,7 +92,7 @@ def socks5_get(host: str, port: int, target_url: str, timeout: int) -> tuple[int
         if hdr[1] != 0:
             raise RuntimeError(f"SOCKS5 CONNECT REP={hdr[1]} (≠0)")
         atyp = hdr[3]
-        if atyp == 1:    # IPv4
+        if atyp == 1:  # IPv4
             extra = b""
             while len(extra) < 4 + 2:
                 extra += s.recv(4 + 2 - len(extra))
@@ -151,12 +155,17 @@ def fetch_direct(url: str, timeout: int) -> tuple[int, float, bytes]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="fresta — health-check деплоя vless-vps")
-    ap.add_argument("client_json", nargs="?",
-                    help="путь к client.json (если задан --socks — игнорируется)")
-    ap.add_argument("--socks", metavar="HOST:PORT",
-                    help="адрес уже запущенного SOCKS5 (например 127.0.0.1:1080)")
-    ap.add_argument("--expect-ip", metavar="IP",
-                    help="ожидаемый exit-IP (иначе просто печатает фактический)")
+    ap.add_argument(
+        "client_json", nargs="?", help="путь к client.json (если задан --socks — игнорируется)"
+    )
+    ap.add_argument(
+        "--socks",
+        metavar="HOST:PORT",
+        help="адрес уже запущенного SOCKS5 (например 127.0.0.1:1080)",
+    )
+    ap.add_argument(
+        "--expect-ip", metavar="IP", help="ожидаемый exit-IP (иначе просто печатает фактический)"
+    )
     ap.add_argument("--timeout", type=int, default=TIMEOUT, help="таймаут на запрос (с)")
     args = ap.parse_args()
 
@@ -180,7 +189,7 @@ def main() -> int:
     for i, (url, needle) in enumerate(PROBES, 1):
         try:
             status, lat, body = fetch_via_socks(host, port, url, args.timeout)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             print(f"  {i:>2}  {'FAIL':>6}  {'-':>8}  {'-':>5}  {url}  ({type(e).__name__}: {e})")
             results.append((url, False, 0.0))
             continue
@@ -189,9 +198,9 @@ def main() -> int:
         if exit_ip is None and "ipify" in url:
             try:
                 exit_ip = json.loads(body).get("ip", "?")
-            except Exception:  # noqa: BLE001
+            except Exception:
                 exit_ip = "?"
-        print(f"  {i:>2}  {status:>6}  {lat*1000:>6.0f}ms  {match:>5}  {url}")
+        print(f"  {i:>2}  {status:>6}  {lat * 1000:>6.0f}ms  {match:>5}  {url}")
         results.append((url, status == 200, lat))
 
     # Сравнение exit-IP с прямым запросом.
@@ -199,7 +208,7 @@ def main() -> int:
     try:
         _, _, body = fetch_direct("https://api.ipify.org?format=json", args.timeout)
         direct_ip = json.loads(body).get("ip", "?")
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     print(f"\n[*] Exit-IP через туннель: {exit_ip}")
     if direct_ip:
@@ -211,12 +220,15 @@ def main() -> int:
 
     # Сводка.
     ok = sum(1 for _, s, _ in results if s)
-    latencies = [l for _, s, l in results if s]
+    latencies = [lat for _, s, lat in results if s]
     print(f"\n[*] OK: {ok}/{len(results)}")
     if latencies:
         med = statistics.median(latencies) * 1000
-        p95 = (sorted(latencies)[int(len(latencies) * 0.95) - 1] if len(latencies) >= 2
-               else latencies[0]) * 1000
+        p95 = (
+            sorted(latencies)[int(len(latencies) * 0.95) - 1]
+            if len(latencies) >= 2
+            else latencies[0]
+        ) * 1000
         print(f"[*] Latency: median={med:.0f}ms  p95={p95:.0f}ms")
     return 0 if ok == len(results) else 1
 

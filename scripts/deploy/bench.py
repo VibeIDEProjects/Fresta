@@ -16,6 +16,8 @@ fresta · bench.py
 Зависимостей нет.
 """
 
+from __future__ import annotations
+
 import argparse
 import statistics
 import sys
@@ -44,7 +46,7 @@ def fetch(url: str, timeout: int) -> tuple[int, float, int]:
         req = urllib.request.Request(url, headers={"User-Agent": "fresta-bench/1.0"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             body = r.read()
-    except urllib.error.URLError as e:
+    except urllib.error.URLError:
         return 0, time.perf_counter() - t0, 0
     return r.status, time.perf_counter() - t0, len(body)
 
@@ -61,7 +63,7 @@ def bench_latency(label: str) -> tuple[int, list[float]]:
         if marker == "OK":
             ok += 1
             times.append(lat)
-        print(f"  {i:>2}  {status:>6}  {lat*1000:>6.0f}ms  {url}")
+        print(f"  {i:>2}  {status:>6}  {lat * 1000:>6.0f}ms  {url}")
     return ok, times
 
 
@@ -69,10 +71,10 @@ def bench_throughput(label: str) -> tuple[int, float]:
     print(f"\n=== Throughput ({label}, 1 МБ) ===")
     status, lat, n = fetch(THROUGHPUT_URL, TIMEOUT)
     if n < 1024 or status != 200:
-        print(f"  FAIL: status={status}, получено {n} байт за {lat*1000:.0f}ms")
+        print(f"  FAIL: status={status}, получено {n} байт за {lat * 1000:.0f}ms")
         return 0, 0.0
     mbps = (n * 8) / (lat * 1_000_000)
-    print(f"  OK: {n} байт за {lat*1000:.0f}ms  →  {mbps:.2f} Мбит/с")
+    print(f"  OK: {n} байт за {lat * 1000:.0f}ms  →  {mbps:.2f} Мбит/с")
     return 1, mbps
 
 
@@ -89,12 +91,19 @@ def print_stats(label: str, times: list[float]) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="fresta — мини-бенчмарк туннеля")
-    ap.add_argument("--socks", metavar="HOST:PORT",
-                    help="адрес SOCKS5 туннеля (если задан — будет тест через туннель)")
-    ap.add_argument("--compare", action="store_true",
-                    help="дополнительно прогнать direct (без прокси) для сравнения")
-    ap.add_argument("--no-throughput", action="store_true",
-                    help="пропустить throughput-тест (тяжёлый)")
+    ap.add_argument(
+        "--socks",
+        metavar="HOST:PORT",
+        help="адрес SOCKS5 туннеля (если задан — будет тест через туннель)",
+    )
+    ap.add_argument(
+        "--compare",
+        action="store_true",
+        help="дополнительно прогнать direct (без прокси) для сравнения",
+    )
+    ap.add_argument(
+        "--no-throughput", action="store_true", help="пропустить throughput-тест (тяжёлый)"
+    )
     args = ap.parse_args()
 
     if not args.socks and not args.compare:
@@ -114,7 +123,7 @@ def main() -> int:
         args.compare = True
 
     if args.compare:
-        ok_d, times_d = bench_latency("direct")
+        _ok_d, times_d = bench_latency("direct")
         if not args.no_throughput:
             bench_throughput("direct")
         print_stats("Latency direct", times_d)
