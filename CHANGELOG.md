@@ -6,6 +6,49 @@
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-15
+
+### Fixed
+- **CI: tests.yml падал на 6 jobs из 11 на каждом push в `master`**
+  (4 запуска подряд, 4 фейла — тесты никогда не проходили). Причины и
+  фиксы:
+  - `ruff check .` падал с **248 ошибками** (накопившийся техдолг:
+    RUF001/002/003 cyrillic, F401, E721, E741, F841, I001, SIM*/B*/N815,
+    W292, RUF100, UP*). Расчистил: ignore += RUF001/002/003 (cyrillic —
+    фича русскоязычного проекта) + N815 (стандартный паттерн
+    `BaseHTTPRequestHandler.do_GET/do_POST`); per-file-ignores для
+    `scripts/tests/*` (smoke-тесты); `from __future__ import annotations`
+    в `fresta_recon.py` / `bench.py` / `diff_configs.py` (PEP 563, lazy
+    annotations — PEP 585 generic теперь безопасен на 3.8); ручные
+    правки F401 / E721 / E741 / B034 / SIM102×4 / SIM105 / SIM103 /
+    SIM117; `ruff format --check` (6 файлов переформатировано).
+  - **`scripts/deploy/fresta_gen_vless.py:90`** использовал
+    `-> list[str]` (PEP 585) в runtime — на Python 3.8 падало с
+    `TypeError: 'type' object is not subscriptable`. Добавлен
+    `from __future__ import annotations`.
+  - **Windows-CI: `UnicodeEncodeError: 'charmap' codec can't encode`**
+    в `test_handler.py:118` (`" шт, " б64"` в print) и в
+    `test_recon.py:31` (`detail: {det}` где `det` содержит не-ASCII).
+    FIX: `sys.stdout.reconfigure(encoding='utf-8', errors='replace')`
+    в начале обоих тестов + ASCII-вывод в `test_handler.py`.
+  - **`run_tests.{sh,ps1}`**: улучшена диагностика (печатает
+    `python --version`, PWD, `python -u`, exit code), stdout+stderr
+    каждого упавшего теста пишется в `_fail_*.log` и upload'ится
+    через `actions/upload-artifact@v4` с `if: failure()` (renamed
+    позже на `if: always()` для ruff) — скачать через
+    `nightly.link/<artifact_id>.zip`.
+  - **`ruff format --check` ругался на `fresta_gen_vless.py`** —
+    не прогнал `format` локально перед push'ом. Файл переформатирован.
+
+### Added
+- **`scripts/bin/`** — переиспользуемые dev-хелперы:
+  - `bump_version.py` — bump версии в `pyproject.toml` +
+    `fresta/__init__.py` одной командой.
+  - `check_pep585.py` — поиск PEP 585 generic в runtime (защита от
+    повторения `TypeError: 'type' object is not subscriptable` на
+    Python 3.8).
+  - `README.md` — описание и конвенции папки.
+
 ## [0.2.1] - 2026-06-14
 
 ### Fixed
