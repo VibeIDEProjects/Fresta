@@ -67,14 +67,25 @@ jobs:
         run: pip install ruff>=0.5
 
       - name: ruff check
-        run: ruff check . --output-format=concise 2>&1 | tee ruff_check.log; rc=${PIPESTATUS[0]}; [ $rc -eq 0 ] || exit $rc
+        run: |
+          set +e
+          ruff check . --output-format=concise 2>&1 | tee ruff_check.log
+          rc=${PIPESTATUS[0]}
+          echo "ruff check exit=$rc"
+          exit $rc
 
       - name: ruff format --check
-        run: ruff format --check . 2>&1 | tee ruff_format.log; rc=${PIPESTATUS[0]}; [ $rc -eq 0 ] || exit $rc
+        run: |
+          set +e
+          ruff format --check . 2>&1 | tee ruff_format.log
+          rc=${PIPESTATUS[0]}
+          echo "ruff format --check exit=$rc"
+          exit $rc
 
-      # При failure приложить ruff-логи, чтобы можно было прочитать в nightly.link
-      - name: Upload ruff logs on failure
-        if: failure()
+      # always() — потому что GitHub Actions по дефолту пропускает steps после
+      # failure, и без always() upload не запустится.
+      - name: Upload ruff logs (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ruff-logs
