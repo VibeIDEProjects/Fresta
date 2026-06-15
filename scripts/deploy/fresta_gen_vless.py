@@ -41,6 +41,7 @@ fresta · gen_vless (Фаза 2) — генератор VLESS+Reality конфи
 (Timeweb/Selectel/Beget), SNI — из scripts/sni_candidates.txt, fp=chrome обязательно,
 в конфиге IP-литерал (внешний DNS у оператора закрыт).
 """
+from __future__ import annotations  # PEP 563: lazy annotations, нужно для PEP 585 generic на py3.8
 
 import argparse
 import base64

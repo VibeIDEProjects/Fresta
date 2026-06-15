@@ -4,6 +4,13 @@ import base64
 import importlib.util
 import json
 import os
+import sys
+
+# На Windows-CI stdout = cp1252; кириллица в print падает с UnicodeEncodeError.
+# Переключаем в UTF-8 с заменой непечатаемых символов (Python 3.7+).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # 1. Загружаем модуль handler.py как обычный Python-модуль (не как пакет)
 #    и подменяем TOKEN на тестовый.
@@ -115,9 +122,10 @@ if r["statusCode"] == 200:
     except ValueError:
         payload = json.loads(base64.b64decode(body_b64))
     assert "status" in payload and "body_b64" in payload
+    # ASCII-only: на Windows-CI stdout = cp1252, кириллица падает.
     print(
-        f"   status={payload['status']}, headers={len(payload.get('headers', {}))} шт, "
-        f"body={len(payload['body_b64'])} б64"
+        f"   status={payload['status']}, headers={len(payload.get('headers', {}))} cnt, "
+        f"body={len(payload['body_b64'])} b64"
     )
 
 

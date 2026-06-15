@@ -2,6 +2,13 @@
 
 import importlib.util
 import os
+import sys
+
+# На Windows-CI stdout = cp1252; кириллица в print падает с UnicodeEncodeError.
+# Переключаем в UTF-8 с заменой непечатаемых символов (Python 3.7+).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # Тест лежит в scripts/tests/, а сам скрипт — в scripts/recon/.
 _RECON_PATH = os.path.normpath(
